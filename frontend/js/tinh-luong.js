@@ -44,6 +44,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Nút Xuất Excel Bản Đẹp
+  document.getElementById('btn-export-excel')?.addEventListener('click', () => {
+    const branchName = currentBranchId === 1 ? 'Chi nhánh Càng Long' : 'Chi nhánh Tân Nhựt';
+    excelExporter.exportPayroll(currentBranchId, branchName, currentMonth, currentYear);
+  });
+
   // Nút Thêm Dòng Lương
   document.getElementById('btn-add-payroll')?.addEventListener('click', openAddPayrollModal);
   document.getElementById('btn-submit-add-payroll')?.addEventListener('click', submitAddPayroll);

@@ -69,6 +69,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     filterAndRender(e.target.value.toLowerCase().trim());
   });
 
+  // Nút Xuất Excel Danh Sách Giáo Viên
+  document.getElementById('btn-export-emp-excel')?.addEventListener('click', () => {
+    const branchName = currentBranchId === 1 ? 'Chi nhánh Càng Long' : 'Chi nhánh Tân Nhựt';
+    excelExporter.exportEmployees(currentBranchId, branchName, allEmployees);
+  });
+
   // Modal Thêm mới
   document.getElementById('btn-add-employee')?.addEventListener('click', openAddModal);
   document.getElementById('btn-save-employee')?.addEventListener('click', saveEmployee);

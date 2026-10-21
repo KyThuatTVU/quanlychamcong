@@ -131,6 +131,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadMatrixAttendance();
   });
 
+  // Nút Xuất Excel Bảng Chấm Công Ma Trận
+  document.getElementById('btn-export-attendance-excel')?.addEventListener('click', () => {
+    const branchName = currentBranchId === 1 ? 'Chi nhánh Càng Long' : 'Chi nhánh Tân Nhựt';
+    excelExporter.exportAttendanceMatrix(currentBranchId, branchName, currentMonth, currentYear, currentSalaryType);
+  });
+
   // Nút Lưu Toàn Bộ Bảng Ngày
   document.getElementById('btn-save-all-daily')?.addEventListener('click', saveAllDailyRecords);
 

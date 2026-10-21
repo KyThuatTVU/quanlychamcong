@@ -75,11 +75,15 @@ class Payroll {
                     if (in_array($sym, ['X', 'X + TC', 'X+TC'])) {
                         $totalDaysX += 1.0;
                     }
-                    if (!empty($a['is_overtime'])) {
+                    $isRowOt = !empty($a['is_overtime']) || in_array($sym, ['X + TC', 'X+TC']);
+                    if ($isRowOt) {
                         $otCount++;
-                    }
-                    $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
-                    if ($otH > 0) {
+                        $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
+                        if ($otH <= 0) {
+                            $otH = 1.50; // Quy định: tăng ca là 1.50h
+                        } else if ($otH > 1.50) {
+                            $otH = 1.50; // Tối đa 1.50h
+                        }
                         $totalOtHours += $otH;
                     }
                     $lateM = (int)($a['late_minutes'] ?? 0);
@@ -158,7 +162,7 @@ class Payroll {
                     }
                 }
 
-                $slotRate = (float)$emp['hourly_rate'];
+                $slotRate = (float)($emp['hourly_rate'] ?: ($config['default_slot_rate'] ?? 120000));
                 $boardRate = (float)$emp['boarding_allowance'];
 
                 // Tiền lương theo ca

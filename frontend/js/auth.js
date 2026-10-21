@@ -44,7 +44,7 @@ const auth = {
     });
 
     if (res.status === 'success') {
-      utils.showToast('Đăng nhập thành công!', 'success');
+      utils.showToast('Đăng nhập Google thành công!', 'success');
       setTimeout(() => {
         window.location.href = 'index.html';
       }, 500);
@@ -68,7 +68,33 @@ const auth = {
 
   // Đăng xuất
   async logout() {
-    await api.get('auth_google.php', { action: 'logout' });
+    await api.get('auth_google.php?action=logout');
     window.location.href = 'login.html';
+  },
+
+  // Lấy Client ID Google từ backend
+  async getGoogleClientId() {
+    return await api.get('auth_google.php?action=get_client_id');
+  },
+
+  // Lưu Client ID Google vào backend
+  async saveGoogleClientId(clientId) {
+    return await api.post('auth_google.php?action=save_client_id', {
+      client_id: clientId
+    });
+  },
+
+  // Lấy danh sách tài khoản
+  async getUsers() {
+    return await api.get('auth_google.php?action=get_users');
+  },
+
+  // Thêm tài khoản Google được ủy quyền
+  async addUser(email, name, role = 'SUPER_ADMIN') {
+    return await api.post('auth_google.php?action=add_user', {
+      email,
+      name,
+      role
+    });
   }
 };

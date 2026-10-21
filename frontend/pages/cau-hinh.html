@@ -8,18 +8,37 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .currency-hint {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin-top: 3px;
+      display: block;
+    }
+    .spin {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
   <aside class="app-sidebar">
     <div class="brand-header">
       <div class="brand-logo-icon">
-        <i data-lucide="graduation-cap"></i>
+        <img src="../assets/logo.png" alt="HappyKids Logo" class="brand-logo-img">
       </div>
       <div class="brand-text">
         <h2>HAPPYKIDS</h2>
         <p>Quản Lý Nhân Sự & Công</p>
       </div>
+      <button class="btn-sidebar-collapse" id="btn-sidebar-collapse" title="Thu gọn Menu">
+        <i data-lucide="chevron-left"></i>
+      </button>
     </div>
 
     <div class="sidebar-branch-selector">
@@ -70,33 +89,46 @@
 
   <main class="app-main">
     <header class="app-header">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <button class="btn-toggle-sidebar" id="btn-toggle-sidebar">
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+        <button class="btn-toggle-sidebar" id="btn-toggle-sidebar" title="Thu gọn / Mở rộng thanh Menu">
           <i data-lucide="menu"></i>
+          <span class="btn-toggle-text">Thu gọn Menu</span>
         </button>
         <div class="header-title-box">
           <h1 id="page-branch-title">Cấu Hình Tham Số Tính Toán</h1>
           <p>Thiết lập công chuẩn, thời lượng ca dạy và định mức phụ cấp</p>
         </div>
       </div>
+
+      <div class="header-actions">
+        <!-- Bộ chọn cơ sở trực tiếp trên header khi menu thu gọn -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--color-text-secondary); white-space: nowrap;">Cơ sở:</span>
+          <select id="header-branch-select" class="form-control" style="font-weight: 600; min-width: 180px; padding: 6px 12px; height: 38px;">
+            <option value="1">Chi nhánh Càng Long</option>
+            <option value="2">Chi nhánh Tân Nhựt</option>
+          </select>
+        </div>
+      </div>
     </header>
 
     <div class="app-content">
-      <div class="card" style="max-width: 800px;">
-        <div class="card-header">
+      <div class="card" style="max-width: 820px;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
           <div class="card-title">Tham Số Chấm Công & Tính Lương Cơ Sở</div>
+          <span class="badge badge-primary" id="badge-branch-name">Càng Long</span>
         </div>
         <div class="card-body">
-          <form id="config-form">
+          <form id="config-form" novalidate>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Số ngày công chuẩn trong tháng (ngày)</label>
-                <input type="number" class="form-control" id="cfg-std-days" value="26" required>
+                <input type="number" step="any" class="form-control" id="cfg-std-days" value="26" required>
                 <span style="font-size: 11.5px; color: var(--color-text-secondary);">Mặc định 26 ngày công chuẩn (dùng tính lương theo ngày)</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Thời lượng 1 ca chuẩn (phút)</label>
-                <input type="number" class="form-control" id="cfg-slot-mins" value="90" required>
+                <input type="number" step="any" class="form-control" id="cfg-slot-mins" value="90" required>
                 <span style="font-size: 11.5px; color: var(--color-text-secondary);">Chuẩn 90 phút = 1 ca dạy chuyên biệt</span>
               </div>
             </div>
@@ -104,105 +136,452 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Phụ cấp cơm trưa theo ngày công (VNĐ/ngày)</label>
-                <input type="number" class="form-control" id="cfg-lunch-rate" value="25000" required>
+                <input type="number" step="any" class="form-control" id="cfg-lunch-rate" value="25000" required>
+                <span class="currency-hint" id="hint-lunch-rate">25.000 ₫/ngày</span>
                 <span style="font-size: 11.5px; color: var(--color-text-secondary);">Nhân trực tiếp với số ngày công thực tế (X)</span>
               </div>
               <div class="form-group">
-                <label class="form-label">Đơn giá tăng ca mặc định (VNĐ/ca)</label>
-                <input type="number" class="form-control" id="cfg-ot-rate" value="120000" required>
-                <span style="font-size: 11.5px; color: var(--color-text-secondary);">Áp dụng khi giáo viên không có thỏa thuận riêng</span>
+                <label class="form-label">Đơn giá tăng ca mặc định (VNĐ/ca 1.5h)</label>
+                <input type="number" step="any" class="form-control" id="cfg-ot-rate" value="150000" required>
+                <span class="currency-hint" id="hint-ot-rate">150.000 ₫/ca</span>
+                <span style="font-size: 11.5px; color: var(--color-text-secondary);">Áp dụng tính tiền tăng ca cho ca tối đa 1.50h</span>
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Đơn giá ca chuẩn mặc định (VNĐ/ca)</label>
-                <input type="number" class="form-control" id="cfg-slot-rate" value="120000" required>
-                <span style="font-size: 11.5px; color: var(--color-text-secondary);">Áp dụng cho giáo viên dạy lương theo giờ</span>
+                <input type="number" step="any" class="form-control" id="cfg-slot-rate" value="120000" required>
+                <span class="currency-hint" id="hint-slot-rate">120.000 ₫/ca</span>
+                <span style="font-size: 11.5px; color: var(--color-text-secondary);">Áp dụng cho giáo viên dạy lương theo giờ (thỉnh giảng)</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Thời gian làm việc chuẩn 1 ngày mặc định (phút)</label>
-                <input type="number" class="form-control" id="cfg-std-mins" value="480" required>
+                <input type="number" step="any" class="form-control" id="cfg-std-mins" value="480" required>
                 <span style="font-size: 11.5px; color: var(--color-text-secondary);">Chuẩn 8 tiếng (480 phút)</span>
               </div>
             </div>
 
-            <div style="margin-top: 24px; border-top: 1px solid var(--color-border); padding-top: 20px; display: flex; justify-content: flex-end;">
+            <!-- Tùy chọn tự động đồng bộ sang hồ sơ giáo viên -->
+            <div style="margin-top: 18px; padding: 14px 16px; background: #F8FAFC; border: 1px dashed var(--color-border); border-radius: var(--radius-sm);">
+              <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--color-primary); user-select: none;">
+                <input type="checkbox" id="cfg-sync-employees" checked style="width: 18px; height: 18px; margin-top: 2px; accent-color: var(--color-accent); cursor: pointer;">
+                <div>
+                  <div>Tự động áp dụng đơn giá Tăng ca & Ca dạy mới cho toàn bộ giáo viên chi nhánh</div>
+                  <div style="font-weight: 400; font-size: 11.5px; color: var(--color-text-secondary); margin-top: 2px;">
+                    Giúp bảng tính lương tự động cập nhật ngay lập tức theo đơn giá mới mà bạn không cần phải sửa từng giáo viên.
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div style="margin-top: 24px; border-top: 1px solid var(--color-border); padding-top: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
+              <span id="save-status-msg" style="font-size: 12.5px; color: var(--color-text-secondary);"></span>
               <!-- Nút xanh lá theo quy tắc 60-30-10 -->
               <button type="submit" class="btn btn-accent" id="btn-save-cfg">
-                <i data-lucide="check"></i> Lưu Cấu Hình Cơ Sở
+                <i data-lucide="check"></i>
+                <span id="btn-save-text">Lưu Cấu Hình Cơ Sở</span>
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      <!-- CARD CẤU HÌNH ĐĂNG NHẬP GOOGLE OAUTH 2.0 -->
+      <div class="card" style="max-width: 820px; margin-top: 24px;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="key" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+            <div class="card-title">Cấu Hình Đăng Nhập Google (Google OAuth 2.0)</div>
+          </div>
+          <span class="badge" id="google-status-badge" style="background: #FEF3C7; color: #92400E;">Đang kiểm tra...</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 16px;">
+            Hệ thống sử dụng thư viện chính thức <strong>Google Identity Services</strong> để xác thực nhanh và bảo mật không cần mật khẩu.
+          </p>
+
+          <div class="form-group" style="margin-bottom: 18px;">
+            <label class="form-label" style="font-weight: 600;">Google OAuth 2.0 Client ID:</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="text" class="form-control" id="cfg-google-client-id" 
+                     placeholder="Ví dụ: 123456789-abcdefg.apps.googleusercontent.com" 
+                     style="font-family: monospace; font-size: 13px; flex: 1;">
+              <button type="button" class="btn btn-accent" id="btn-save-google-cfg" style="white-space: nowrap;">
+                <i data-lucide="save"></i> Lưu Client ID
+              </button>
+            </div>
+          </div>
+
+          <div style="background: #F8FAFC; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 24px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--color-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="info" style="width: 16px; height: 16px; color: var(--color-primary);"></i> Hướng dẫn tạo Google Client ID (Chỉ làm 1 lần):
+            </div>
+            <ol style="margin: 0; padding-left: 20px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.7;">
+              <li>Truy cập <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: var(--color-primary); font-weight: 600; text-decoration: underline;">Google Cloud Console &rarr; Credentials</a></li>
+              <li>Nhấn <strong>Create Credentials &rarr; OAuth client ID</strong>, chọn loại <em>Web application</em>.</li>
+              <li>Tại mục <strong>Authorized JavaScript origins</strong>, thêm địa chỉ: <code style="background: #E2E8F0; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: #1E293B;" id="cfg-copy-origin">http://localhost</code></li>
+              <li>Sao chép chuỗi <strong>Client ID</strong> dán vào ô bên trên rồi nhấn nút <strong>Lưu Client ID</strong>.</li>
+            </ol>
+          </div>
+
+          <!-- DANH SÁCH TÀI KHOẢN QUẢN TRỊ VIÊN GOOGLE -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-top: 1px solid var(--color-border); padding-top: 20px;">
+            <div>
+              <div style="font-weight: 700; font-size: 14.5px; color: var(--color-secondary);">Danh Sách Tài Khoản Quản Trị Viên Google</div>
+              <div style="font-size: 12px; color: var(--color-text-secondary);">Các tài khoản Gmail được cấp quyền đăng nhập quản trị hệ thống</div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-open-add-user-modal">
+              <i data-lucide="user-plus"></i> Thêm Tài Khoản Google
+            </button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="table-clean" id="table-google-users" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 40px;">STT</th>
+                  <th>Họ và Tên</th>
+                  <th>Email Google</th>
+                  <th>Vai Trò</th>
+                  <th>Đăng Nhập Lần Cuối</th>
+                  <th>Trạng Thái</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-google-users">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 20px; color: var(--color-text-secondary);">
+                    Đang tải danh sách tài khoản...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
+
+  <!-- MODAL THÊM TÀI KHOẢN GOOGLE -->
+  <div class="modal" id="modal-add-user" style="display: none;">
+    <div class="modal-overlay" id="overlay-add-user"></div>
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="user-plus" style="color: var(--color-primary);"></i> Thêm Tài Khoản Google Quản Trị
+        </h3>
+        <button class="modal-close" id="btn-close-add-user">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label">Địa chỉ Email Google (Gmail) (*)</label>
+          <input type="email" class="form-control" id="new-user-email" placeholder="vi-du@gmail.com" required>
+        </div>
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label">Họ và tên người dùng</label>
+          <input type="text" class="form-control" id="new-user-name" placeholder="Nguyễn Văn A">
+        </div>
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label">Phân quyền</label>
+          <select class="form-control" id="new-user-role">
+            <option value="SUPER_ADMIN">Quản Trị Toàn Quyền (SUPER_ADMIN)</option>
+            <option value="ADMIN_CANGLONG">Quản Trị Cơ Sở Càng Long</option>
+            <option value="ADMIN_TANNHUT">Quản Trị Cơ Sở Tân Nhựt</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-add-user">Hủy</button>
+        <button type="button" class="btn btn-accent" id="btn-submit-add-user">
+          <i data-lucide="check"></i> Thêm Tài Khoản
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script src="../js/api.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/auth.js"></script>
   <script>
-    utils.initIcons();
-
     let currentBranchId = 1;
 
+    // Làm sạch và chuyển đổi số an toàn, tránh lỗi do dấu chấm/phẩy phân cách
+    function parseCleanNumber(val, defaultVal = 0) {
+      if (val === undefined || val === null || val === '') return defaultVal;
+      if (typeof val === 'number') return isNaN(val) ? defaultVal : val;
+      const cleaned = String(val).replace(/[^0-9.-]/g, '');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? defaultVal : num;
+    }
+
+    function updateCurrencyHints() {
+      const lunchVal = parseCleanNumber(document.getElementById('cfg-lunch-rate').value, 25000);
+      const otVal = parseCleanNumber(document.getElementById('cfg-ot-rate').value, 150000);
+      const slotVal = parseCleanNumber(document.getElementById('cfg-slot-rate').value, 120000);
+
+      const hLunch = document.getElementById('hint-lunch-rate');
+      const hOt = document.getElementById('hint-ot-rate');
+      const hSlot = document.getElementById('hint-slot-rate');
+
+      if (hLunch) hLunch.textContent = utils.formatCurrency(lunchVal) + ' / ngày';
+      if (hOt) hOt.textContent = utils.formatCurrency(otVal) + ' / ca 1.5h';
+      if (hSlot) hSlot.textContent = utils.formatCurrency(slotVal) + ' / ca';
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
+      utils.initIcons();
+      utils.initSidebarToggle();
       await auth.checkSession();
 
       currentBranchId = utils.getCurrentBranchId();
-      const branchSelect = document.getElementById('sidebar-branch-select');
-      if (branchSelect) {
-        branchSelect.value = currentBranchId;
-        branchSelect.addEventListener('change', (e) => {
-          currentBranchId = parseInt(e.target.value);
-          utils.setCurrentBranchId(currentBranchId);
-          loadConfig();
-        });
+
+      const sidebarSelect = document.getElementById('sidebar-branch-select');
+      const headerSelect = document.getElementById('header-branch-select');
+
+      function syncBranchSelects(val) {
+        currentBranchId = parseInt(val);
+        utils.setCurrentBranchId(currentBranchId);
+        if (sidebarSelect) sidebarSelect.value = currentBranchId;
+        if (headerSelect) headerSelect.value = currentBranchId;
+        loadConfig();
+      }
+
+      if (sidebarSelect) {
+        sidebarSelect.value = currentBranchId;
+        sidebarSelect.addEventListener('change', (e) => syncBranchSelects(e.target.value));
+      }
+      if (headerSelect) {
+        headerSelect.value = currentBranchId;
+        headerSelect.addEventListener('change', (e) => syncBranchSelects(e.target.value));
       }
 
       document.getElementById('btn-logout')?.addEventListener('click', () => auth.logout());
-      document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => {
-        document.querySelector('.app-sidebar')?.classList.toggle('show');
+
+      // Lắng nghe thay đổi để cập nhật gợi ý tiền tệ
+      ['cfg-lunch-rate', 'cfg-ot-rate', 'cfg-slot-rate'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updateCurrencyHints);
       });
 
       await loadConfig();
+      await loadGoogleConfig();
+      await loadGoogleUsers();
 
-      document.getElementById('config-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const payload = {
-          branch_id: currentBranchId,
-          standard_work_days: parseInt(document.getElementById('cfg-std-days').value),
-          slot_duration_minutes: parseInt(document.getElementById('cfg-slot-mins').value),
-          lunch_allowance: parseFloat(document.getElementById('cfg-lunch-rate').value),
-          default_ot_rate: parseFloat(document.getElementById('cfg-ot-rate').value),
-          default_slot_rate: parseFloat(document.getElementById('cfg-slot-rate').value),
-          standard_day_minutes: parseInt(document.getElementById('cfg-std-mins').value)
-        };
-
-        const res = await api.post('settings.php', payload);
-        if (res.status === 'success') {
-          utils.showToast('Cập nhật cấu hình thành công!', 'success');
-        } else {
-          utils.showToast(res.message || 'Lỗi lưu cấu hình', 'error');
+      // Sự kiện lưu Google Client ID
+      document.getElementById('btn-save-google-cfg')?.addEventListener('click', async () => {
+        const val = document.getElementById('cfg-google-client-id').value.trim();
+        if (!val) {
+          utils.showToast('Vui lòng nhập Google Client ID', 'error');
+          return;
         }
+        const btn = document.getElementById('btn-save-google-cfg');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Đang lưu...';
+        const res = await auth.saveGoogleClientId(val);
+        if (res.status === 'success') {
+          utils.showToast('Lưu Google Client ID thành công!', 'success');
+          await loadGoogleConfig();
+        } else {
+          utils.showToast(res.message || 'Lỗi lưu Google Client ID', 'error');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save"></i> Lưu Client ID';
+        utils.initIcons();
+      });
+
+      // Modal thêm tài khoản Google
+      const userModal = document.getElementById('modal-add-user');
+      const openUserModal = document.getElementById('btn-open-add-user-modal');
+      const closeUserModal = document.getElementById('btn-close-add-user');
+      const cancelUserModal = document.getElementById('btn-cancel-add-user');
+      const overlayUserModal = document.getElementById('overlay-add-user');
+      const submitUserBtn = document.getElementById('btn-submit-add-user');
+
+      openUserModal?.addEventListener('click', () => userModal.style.display = 'flex');
+      const hideUserModal = () => userModal.style.display = 'none';
+      closeUserModal?.addEventListener('click', hideUserModal);
+      cancelUserModal?.addEventListener('click', hideUserModal);
+      overlayUserModal?.addEventListener('click', hideUserModal);
+
+      submitUserBtn?.addEventListener('click', async () => {
+        const email = document.getElementById('new-user-email').value.trim();
+        const name = document.getElementById('new-user-name').value.trim();
+        const role = document.getElementById('new-user-role').value;
+
+        if (!email) {
+          utils.showToast('Vui lòng nhập email Gmail', 'error');
+          return;
+        }
+
+        submitUserBtn.disabled = true;
+        submitUserBtn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Đang thêm...';
+        const res = await auth.addUser(email, name, role);
+        if (res.status === 'success') {
+          utils.showToast('Thêm tài khoản Google thành công!', 'success');
+          hideUserModal();
+          document.getElementById('new-user-email').value = '';
+          document.getElementById('new-user-name').value = '';
+          await loadGoogleUsers();
+        } else {
+          utils.showToast(res.message || 'Lỗi thêm tài khoản', 'error');
+        }
+        submitUserBtn.disabled = false;
+        submitUserBtn.innerHTML = '<i data-lucide="check"></i> Thêm Tài Khoản';
+        utils.initIcons();
+      });
+
+      const form = document.getElementById('config-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveConfig();
       });
     });
 
+    async function loadGoogleConfig() {
+      const copyOrigin = document.getElementById('cfg-copy-origin');
+      if (copyOrigin) copyOrigin.textContent = window.location.origin;
+
+      const badge = document.getElementById('google-status-badge');
+      const input = document.getElementById('cfg-google-client-id');
+
+      try {
+        const res = await auth.getGoogleClientId();
+        const clientId = res.data?.client_id;
+        const isConfigured = res.data?.is_configured;
+
+        if (input && clientId && clientId !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com') {
+          input.value = clientId;
+        }
+
+        if (badge) {
+          if (isConfigured) {
+            badge.textContent = 'Đã Kích Hoạt';
+            badge.style.background = '#DCFCE7';
+            badge.style.color = '#15803D';
+          } else {
+            badge.textContent = 'Chưa Cấu Hình';
+            badge.style.background = '#FEF3C7';
+            badge.style.color = '#92400E';
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi load google config:', err);
+      }
+    }
+
+    async function loadGoogleUsers() {
+      const tbody = document.getElementById('tbody-google-users');
+      if (!tbody) return;
+
+      try {
+        const res = await auth.getUsers();
+        if (res.status === 'success' && Array.isArray(res.data) && res.data.length > 0) {
+          tbody.innerHTML = res.data.map((u, idx) => {
+            const avatar = u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || u.email)}&background=2563EB&color=fff`;
+            const roleBadge = u.role === 'SUPER_ADMIN' 
+              ? '<span class="badge badge-primary">Toàn quyền (Admin)</span>'
+              : `<span class="badge badge-secondary">${u.role}</span>`;
+            const lastLogin = u.last_login ? utils.formatDate(u.last_login.split(' ')[0]) + ' ' + u.last_login.split(' ')[1] : 'Chưa đăng nhập';
+
+            return `
+              <tr>
+                <td style="text-align: center; color: var(--color-text-secondary);">${idx + 1}</td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <img src="${avatar}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;" alt="Avatar">
+                    <span style="font-weight: 600;">${u.name || 'Chưa đặt tên'}</span>
+                  </div>
+                </td>
+                <td style="font-family: monospace; font-size: 12px; color: var(--color-primary);">${u.email}</td>
+                <td>${roleBadge}</td>
+                <td style="font-size: 12px; color: var(--color-text-secondary);">${lastLogin}</td>
+                <td><span class="badge" style="background: #DCFCE7; color: #15803D;">Hoạt động</span></td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 20px; color: var(--color-text-secondary);">
+                Chưa có tài khoản nào được lưu. Bất kỳ tài khoản Google nào đăng nhập lần đầu sẽ tự động được thêm vào đây.
+              </td>
+            </tr>
+          `;
+        }
+      } catch (err) {
+        console.error('Lỗi load users:', err);
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--color-danger);">Lỗi tải danh sách tài khoản</td></tr>`;
+      }
+    }
+
+    async function saveConfig() {
+      const btn = document.getElementById('btn-save-cfg');
+      const btnText = document.getElementById('btn-save-text');
+      const statusMsg = document.getElementById('save-status-msg');
+
+      const payload = {
+        branch_id: currentBranchId,
+        standard_work_days: Math.round(parseCleanNumber(document.getElementById('cfg-std-days').value, 26)),
+        slot_duration_minutes: Math.round(parseCleanNumber(document.getElementById('cfg-slot-mins').value, 90)),
+        lunch_allowance: Math.round(parseCleanNumber(document.getElementById('cfg-lunch-rate').value, 25000)),
+        default_ot_rate: Math.round(parseCleanNumber(document.getElementById('cfg-ot-rate').value, 150000)),
+        default_slot_rate: Math.round(parseCleanNumber(document.getElementById('cfg-slot-rate').value, 120000)),
+        standard_day_minutes: Math.round(parseCleanNumber(document.getElementById('cfg-std-mins').value, 480)),
+        sync_employees: document.getElementById('cfg-sync-employees')?.checked ? 1 : 0
+      };
+
+      // Hiệu ứng đang lưu
+      btn.disabled = true;
+      btnText.textContent = 'Đang lưu...';
+      if (statusMsg) statusMsg.textContent = 'Đang gửi dữ liệu đến máy chủ...';
+
+      try {
+        const res = await api.post('settings.php', payload);
+        if (res.status === 'success') {
+          utils.showToast('Lưu cấu hình và đồng bộ đơn giá thành công!', 'success');
+          if (statusMsg) statusMsg.textContent = 'Đã lưu lúc ' + new Date().toLocaleTimeString('vi-VN');
+          await loadConfig();
+        } else {
+          utils.showToast(res.message || 'Lỗi khi lưu cấu hình', 'error');
+          if (statusMsg) statusMsg.textContent = 'Lỗi lưu cấu hình!';
+        }
+      } catch (err) {
+        console.error('Save config error:', err);
+        utils.showToast('Không thể kết nối đến máy chủ', 'error');
+        if (statusMsg) statusMsg.textContent = 'Lỗi kết nối máy chủ!';
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Lưu Cấu Hình Cơ Sở';
+        utils.initIcons();
+      }
+    }
+
     async function loadConfig() {
       const branchName = currentBranchId === 1 ? 'Chi nhánh Càng Long' : 'Chi nhánh Tân Nhựt';
-      document.getElementById('page-branch-title').textContent = `Cấu Hình — ${branchName}`;
+      const shortName = currentBranchId === 1 ? 'Càng Long' : 'Tân Nhựt';
 
-      const res = await api.get('settings.php', { branch_id: currentBranchId });
-      if (res.status === 'success' && res.data) {
-        const c = res.data;
-        document.getElementById('cfg-std-days').value = c.standard_work_days || 26;
-        document.getElementById('cfg-slot-mins').value = c.slot_duration_minutes || 90;
-        document.getElementById('cfg-lunch-rate').value = c.lunch_allowance || 25000;
-        document.getElementById('cfg-ot-rate').value = c.default_ot_rate || 120000;
-        document.getElementById('cfg-slot-rate').value = c.default_slot_rate || 120000;
-        document.getElementById('cfg-std-mins').value = c.standard_day_minutes || 480;
+      const titleEl = document.getElementById('page-branch-title');
+      const badgeEl = document.getElementById('badge-branch-name');
+      if (titleEl) titleEl.textContent = `Cấu Hình — ${branchName}`;
+      if (badgeEl) badgeEl.textContent = shortName;
+
+      try {
+        const res = await api.get('settings.php', { branch_id: currentBranchId });
+        if (res.status === 'success' && res.data) {
+          const c = res.data;
+          // Format thành số nguyên tròn trịa (không hiển thị ,00 gây rối mắt và lỗi form)
+          document.getElementById('cfg-std-days').value = Math.round(parseCleanNumber(c.standard_work_days, 26));
+          document.getElementById('cfg-slot-mins').value = Math.round(parseCleanNumber(c.slot_duration_minutes, 90));
+          document.getElementById('cfg-lunch-rate').value = Math.round(parseCleanNumber(c.lunch_allowance, 25000));
+          document.getElementById('cfg-ot-rate').value = Math.round(parseCleanNumber(c.default_ot_rate, 150000));
+          document.getElementById('cfg-slot-rate').value = Math.round(parseCleanNumber(c.default_slot_rate, 120000));
+          document.getElementById('cfg-std-mins').value = Math.round(parseCleanNumber(c.standard_day_minutes, 480));
+
+          updateCurrencyHints();
+        }
+      } catch (err) {
+        console.error('Load config error:', err);
       }
+      utils.initIcons();
     }
   </script>
 </body>

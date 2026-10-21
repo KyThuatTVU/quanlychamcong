@@ -1,7 +1,6 @@
 <?php
 /**
  * CẤU HÌNH ĐĂNG NHẬP BẰNG GOOGLE (GOOGLE OAUTH2 / GOOGLE IDENTITY SERVICES)
- * Bạn có thể lấy Client ID từ Google Cloud Console (Credentials -> OAuth 2.0 Client IDs)
  */
 
 define('GOOGLE_CLIENT_ID', getenv('GOOGLE_CLIENT_ID') ?: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com');

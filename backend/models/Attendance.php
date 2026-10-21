@@ -150,17 +150,21 @@ class Attendance {
                 $workedHours = ($secOut - $secIn) / 3600.0;
             }
 
-            // Ưu tiên số giờ tăng ca do người dùng nhập hoặc sửa
+            // Ưu tiên số giờ tăng ca do người dùng nhập hoặc sửa (Quy định: tăng ca là 1.50h, tối đa 1.50h)
             if (isset($data['ot_hours']) && $data['ot_hours'] !== '' && $data['ot_hours'] !== null) {
-                $otHours = round((float)$data['ot_hours'], 2);
+                $otHours = min(1.50, round((float)$data['ot_hours'], 2));
                 if ($otHours > 0) {
                     $isOt = 1;
                 }
             } else if ($workedHours > $stdHours) {
-                $otHours = round($workedHours - $stdHours, 2);
+                $otHours = min(1.50, round($workedHours - $stdHours, 2));
                 $isOt = 1;
             } else if ($isOt) {
-                $otHours = 1.0;
+                $otHours = 1.50;
+            }
+
+            if ($otHours > 1.50) {
+                $otHours = 1.50;
             }
 
             if ($isOt || $otHours > 0) {

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/style.css">
   <style>
     .matrix-wrapper {
@@ -53,7 +54,7 @@
     <div class="brand-header">
       <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
         <div class="brand-logo-icon">
-          <i data-lucide="graduation-cap"></i>
+          <img src="../assets/logo.png" alt="HappyKids Logo" class="brand-logo-img">
         </div>
         <div class="brand-text">
           <h2>HAPPYKIDS</h2>
@@ -125,6 +126,11 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- Nút Xuất Excel Bảng Công Ma Trận -->
+        <button class="btn btn-secondary btn-sm" id="btn-export-attendance-excel" title="Xuất bảng chấm công ma trận tháng ra file Excel chuẩn đẹp">
+          <i data-lucide="file-spreadsheet" style="color: #059669;"></i>
+          <span>Xuất Excel Bảng Công</span>
+        </button>
         <!-- Nút mở rộng toàn màn hình để chụp báo cáo -->
         <button class="btn btn-secondary btn-sm" id="btn-fullscreen-toggle" title="Xem toàn màn hình không có thanh cuộn để chụp ảnh báo cáo">
           <i data-lucide="maximize-2"></i>
@@ -302,6 +308,10 @@
   <script src="../js/api.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/auth.js"></script>
+  <!-- Thư viện xuất Excel chuẩn đẹp chuyên nghiệp -->
+  <script src="../js/libs/exceljs.min.js"></script>
+  <script src="../js/libs/FileSaver.min.js"></script>
+  <script src="../js/excel-export.js"></script>
   <script src="../js/cham-cong.js"></script>
 </body>
 </html>

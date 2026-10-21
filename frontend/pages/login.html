@@ -13,6 +13,7 @@
   <!-- Google Identity Services (GIS) Client Library -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- Stylesheet -->
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/style.css">
   <style>
     .login-wrapper {
@@ -30,30 +31,40 @@
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-xl);
-      padding: 40px;
+      padding: 36px 32px;
       box-shadow: var(--shadow-modal);
       text-align: center;
     }
     .login-logo {
-      width: 60px;
-      height: 60px;
-      background: var(--color-primary);
-      color: #fff;
+      width: 72px;
+      height: 72px;
+      background: #ffffff;
+      border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       margin: 0 auto 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25);
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .login-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .login-divider {
       display: flex;
       align-items: center;
-      margin: 24px 0;
+      text-align: center;
+      margin: 20px 0 16px;
       color: var(--color-text-secondary);
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
-    .login-divider::before, .login-divider::after {
+    .login-divider::before,
+    .login-divider::after {
       content: '';
       flex: 1;
       height: 1px;
@@ -62,33 +73,48 @@
     .login-divider span {
       padding: 0 12px;
     }
+    .google-setup-box {
+      background: #FFFBEB;
+      border: 1px dashed #F59E0B;
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
   <div class="login-wrapper">
     <div class="login-card">
       <div class="login-logo">
-        <i data-lucide="graduation-cap" style="width: 32px; height: 32px;"></i>
+        <img src="../assets/logo.png" alt="HappyKids Logo">
       </div>
       <h2 style="font-size: 22px; font-weight: 700; color: var(--color-secondary); margin-bottom: 6px;">HAPPYKIDS HRM</h2>
-      <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 28px;">
+      <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px;">
         Hệ thống quản lý nhân sự & chấm công<br>Chi nhánh Càng Long & Chi nhánh Tân Nhựt
       </p>
 
-      <!-- GOOGLE IDENTITY SERVICES BUTTON CONTAINER -->
-      <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-           data-callback="handleCredentialResponse"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin"
-           data-type="standard"
-           data-size="large"
-           data-theme="outline"
-           data-text="sign_in_with"
-           data-shape="rectangular"
-           data-logo_alignment="left"
-           style="display: flex; justify-content: center; margin-bottom: 16px;">
+      <!-- KHU VỰC NÚT ĐĂNG NHẬP GOOGLE -->
+      <div id="google-login-area">
+        <!-- Nơi Google Identity Services render nút đăng nhập -->
+        <div id="google-btn-container" style="display: flex; justify-content: center; margin-bottom: 12px; min-height: 44px;">
+          <div style="font-size: 13px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="loader-2" style="animation: spin 1s linear infinite; width: 16px; height: 16px;"></i> Đang khởi tạo đăng nhập Google...
+          </div>
+        </div>
+
+        <!-- Khung cảnh báo và cấu hình nếu chưa có Client ID -->
+        <div id="google-setup-notice" class="google-setup-box" style="display: none;">
+          <div style="font-size: 12.5px; font-weight: 700; color: #B45309; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+            <i data-lucide="alert-circle" style="width: 16px; height: 16px;"></i> Chưa kết nối Google Client ID
+          </div>
+          <div style="font-size: 11.5px; color: #78350F; line-height: 1.5; margin-bottom: 10px;">
+            Để bật nút đăng nhập bằng tài khoản Google, bạn chỉ cần nhập chuỗi Google Client ID vào hệ thống.
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-open-google-modal" style="width: 100%; justify-content: center; font-size: 12px;">
+            <i data-lucide="settings"></i> Cấu Hình Google Client ID
+          </button>
+        </div>
       </div>
 
       <div class="login-divider">
@@ -105,20 +131,172 @@
     </div>
   </div>
 
+  <!-- MODAL THIẾT LẬP GOOGLE CLIENT ID -->
+  <div class="modal" id="modal-google-setup" style="display: none;">
+    <div class="modal-overlay" id="overlay-google-setup"></div>
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="key" style="color: var(--color-primary);"></i> Cấu Hình Google Client ID
+        </h3>
+        <button class="modal-close" id="btn-close-google-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <p style="font-size: 12.5px; color: var(--color-text-secondary); margin-bottom: 14px;">
+          Dán chuỗi <strong>OAuth 2.0 Client ID</strong> từ <em>Google Cloud Console</em> của bạn vào ô bên dưới:
+        </p>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" style="font-weight: 600;">Google Client ID:</label>
+          <input type="text" class="form-control" id="input-google-client-id" 
+                 placeholder="xxxxxxx-xxxxxxxxxxxx.apps.googleusercontent.com" 
+                 style="font-family: monospace; font-size: 12px;">
+          <span style="font-size: 11px; color: var(--color-text-secondary); margin-top: 4px; display: block;">
+            Được cấp tại: <strong>Google Cloud Console &rarr; APIs & Services &rarr; Credentials</strong>
+          </span>
+        </div>
+
+        <div style="background: #F1F5F9; border-radius: 6px; padding: 10px 12px; font-size: 11.5px; color: var(--color-secondary); margin-bottom: 16px;">
+          <strong>Lưu ý cấu hình trên Google Cloud:</strong>
+          <div style="margin-top: 4px;">Thêm vào ô <em>Authorized JavaScript origins</em>:</div>
+          <code style="background: #E2E8F0; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 3px; font-size: 11px;" id="copy-origin">
+            http://localhost
+          </code>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 12px 20px;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-google-modal">Hủy</button>
+        <button type="button" class="btn btn-accent" id="btn-save-google-client-id">
+          <i data-lucide="check"></i> Lưu & Bật Đăng Nhập
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="../js/api.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/auth.js"></script>
   <script>
     utils.initIcons();
 
-    // Callback khi người dùng đăng nhập bằng Google thành công
+    // Callback toàn cục khi người dùng đăng nhập bằng Google thành công
     window.handleCredentialResponse = function(response) {
       auth.handleGoogleCallback(response);
     };
 
+    // Khởi tạo Google Identity Services
+    async function initGoogleLogin() {
+      const container = document.getElementById('google-btn-container');
+      const setupNotice = document.getElementById('google-setup-notice');
+
+      try {
+        const res = await auth.getGoogleClientId();
+        const clientId = res.data?.client_id;
+        const isConfigured = res.data?.is_configured;
+
+        if (isConfigured && clientId) {
+          setupNotice.style.display = 'none';
+          container.innerHTML = '';
+
+          // Đợi thư viện Google sẵn sàng
+          const checkGoogleLib = setInterval(() => {
+            if (window.google && window.google.accounts && window.google.accounts.id) {
+              clearInterval(checkGoogleLib);
+
+              window.google.accounts.id.initialize({
+                client_id: clientId,
+                callback: window.handleCredentialResponse,
+                auto_select: false
+              });
+
+              window.google.accounts.id.renderButton(
+                container,
+                {
+                  theme: 'outline',
+                  size: 'large',
+                  text: 'sign_in_with',
+                  shape: 'rectangular',
+                  logo_alignment: 'left',
+                  width: 320
+                }
+              );
+            }
+          }, 150);
+
+          // Timeout sau 5s nếu không tải được thư viện Google
+          setTimeout(() => clearInterval(checkGoogleLib), 5000);
+        } else {
+          // Chưa cấu hình: Hiển thị hướng dẫn
+          container.innerHTML = '';
+          setupNotice.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Lỗi khởi tạo Google Auth:', err);
+        container.innerHTML = '<span style="font-size: 12px; color: var(--color-danger);">Không thể nạp cấu hình Google</span>';
+        setupNotice.style.display = 'block';
+      }
+      utils.initIcons();
+    }
+
+    // Modal cấu hình Client ID
+    const modal = document.getElementById('modal-google-setup');
+    const inputClientId = document.getElementById('input-google-client-id');
+    const openBtn = document.getElementById('btn-open-google-modal');
+    const closeBtn = document.getElementById('btn-close-google-modal');
+    const cancelBtn = document.getElementById('btn-cancel-google-modal');
+    const overlay = document.getElementById('overlay-google-setup');
+    const saveBtn = document.getElementById('btn-save-google-client-id');
+
+    function openModal() {
+      auth.getGoogleClientId().then(res => {
+        if (res.data?.client_id && res.data.client_id !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com') {
+          inputClientId.value = res.data.client_id;
+        }
+      });
+      // Cập nhật origin hiện tại
+      document.getElementById('copy-origin').textContent = window.location.origin;
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+    }
+
+    openBtn?.addEventListener('click', openModal);
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    overlay?.addEventListener('click', closeModal);
+
+    saveBtn?.addEventListener('click', async () => {
+      const val = inputClientId.value.trim();
+      if (!val) {
+        utils.showToast('Vui lòng nhập Google Client ID', 'error');
+        return;
+      }
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Đang lưu...';
+
+      const res = await auth.saveGoogleClientId(val);
+      if (res.status === 'success') {
+        utils.showToast('Đã lưu Google Client ID thành công!', 'success');
+        closeModal();
+        await initGoogleLogin();
+      } else {
+        utils.showToast(res.message || 'Lỗi lưu cấu hình', 'error');
+      }
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i data-lucide="check"></i> Lưu & Bật Đăng Nhập';
+      utils.initIcons();
+    });
+
     // Nút đăng nhập thử nghiệm cục bộ
-    document.getElementById('btn-dev-login').addEventListener('click', () => {
+    document.getElementById('btn-dev-login')?.addEventListener('click', () => {
       auth.loginDev();
+    });
+
+    // Khởi chạy khi tải xong trang
+    document.addEventListener('DOMContentLoaded', () => {
+      initGoogleLogin();
     });
   </script>
 </body>

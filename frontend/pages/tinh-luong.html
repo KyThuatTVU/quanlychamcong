@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/style.css">
   <style>
     .cell-currency-bold {
@@ -35,7 +36,7 @@
     <div class="brand-header">
       <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
         <div class="brand-logo-icon">
-          <i data-lucide="graduation-cap"></i>
+          <img src="../assets/logo.png" alt="HappyKids Logo" class="brand-logo-img">
         </div>
         <div class="brand-text">
           <h2>HAPPYKIDS</h2>
@@ -106,6 +107,11 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- Nút Xuất Excel Bản Đẹp -->
+        <button class="btn btn-secondary" id="btn-export-excel" title="Xuất toàn bộ bảng lương (cả 2 hình thức lương) ra file Excel định dạng đẹp chuyên nghiệp">
+          <i data-lucide="file-spreadsheet" style="color: #059669;"></i>
+          <span>Xuất Bảng Lương Excel</span>
+        </button>
         <!-- Nút Thêm Dòng Lương -->
         <button class="btn btn-primary" id="btn-add-payroll">
           <i data-lucide="plus"></i>
@@ -438,6 +444,10 @@
   <script src="../js/api.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/auth.js"></script>
+  <!-- Thư viện xuất Excel chuẩn đẹp chuyên nghiệp -->
+  <script src="../js/libs/exceljs.min.js"></script>
+  <script src="../js/libs/FileSaver.min.js"></script>
+  <script src="../js/excel-export.js"></script>
   <script src="../js/tinh-luong.js"></script>
 </body>
 </html>

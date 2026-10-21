@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+backend/config/google_client_id.txt
 
 # IDE and operating system files
 .vscode/
@@ -11,4 +12,3 @@ Thumbs.db
 
 # Local logs and runtime files
 *.log
-

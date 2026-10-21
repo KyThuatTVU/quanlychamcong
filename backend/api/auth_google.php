@@ -3,14 +3,87 @@ require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../models/User.php';
 
-$input = getJsonInput();
-$credential = $input['credential'] ?? '';
 $action = $_GET['action'] ?? 'login';
 
+// 1. LẤY CLIENT ID GOOGLE
+if ($action === 'get_client_id') {
+    $clientId = AuthHelper::getClientId();
+    $isConfigured = (!empty($clientId) && $clientId !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com');
+    jsonResponse('success', [
+        'client_id' => $clientId,
+        'is_configured' => $isConfigured
+    ]);
+}
+
+// 2. LƯU CLIENT ID GOOGLE
+if ($action === 'save_client_id') {
+    $input = getJsonInput();
+    $newClientId = trim($input['client_id'] ?? '');
+    if (empty($newClientId)) {
+        jsonResponse('error', null, 'Vui lòng nhập Google Client ID', 400);
+    }
+    $saved = AuthHelper::saveClientId($newClientId);
+    if ($saved) {
+        jsonResponse('success', ['client_id' => $newClientId], 'Lưu Google Client ID thành công');
+    } else {
+        jsonResponse('error', null, 'Không thể ghi file cấu hình Client ID', 500);
+    }
+}
+
+// 3. ĐĂNG XUẤT
 if ($action === 'logout') {
     AuthHelper::logout();
     jsonResponse('success', null, 'Đã đăng xuất thành công');
 }
+
+// 4. DANH SÁCH TÀI KHOẢN NGƯỜI DÙNG
+if ($action === 'get_users') {
+    try {
+        $userModel = new User();
+        $users = $userModel->getAll();
+        jsonResponse('success', $users);
+    } catch (Throwable $e) {
+        jsonResponse('error', null, 'Lỗi lấy danh sách tài khoản: ' . $e->getMessage(), 500);
+    }
+}
+
+// 5. THÊM TÀI KHOẢN GOOGLE TIỀN ỦY QUYỀN
+if ($action === 'add_user') {
+    $input = getJsonInput();
+    $email = strtolower(trim($input['email'] ?? ''));
+    $name = trim($input['name'] ?? '');
+    $role = trim($input['role'] ?? 'SUPER_ADMIN');
+
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse('error', null, 'Email Google không hợp lệ', 400);
+    }
+
+    try {
+        $db = Database::getConnection();
+        $check = $db->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+        $check->execute([':email' => $email]);
+        if ($check->fetch()) {
+            jsonResponse('error', null, 'Email này đã tồn tại trong hệ thống', 400);
+        }
+
+        $ins = $db->prepare("
+            INSERT INTO users (email, name, role, status, created_at)
+            VALUES (:email, :name, :role, 'ACTIVE', NOW())
+        ");
+        $ins->execute([
+            ':email' => $email,
+            ':name' => $name ?: explode('@', $email)[0],
+            ':role' => $role
+        ]);
+        jsonResponse('success', ['id' => $db->lastInsertId()], 'Đã thêm tài khoản Google thành công');
+    } catch (Throwable $e) {
+        jsonResponse('error', null, 'Lỗi thêm tài khoản: ' . $e->getMessage(), 500);
+    }
+}
+
+// 6. XỬ LÝ ĐĂNG NHẬP (LOGIN)
+$input = getJsonInput();
+$credential = $input['credential'] ?? '';
 
 // Chế độ DEV TEST (cho phép đăng nhập nhanh tài khoản quản trị khi đang thử nghiệm cục bộ)
 if (!empty($input['is_dev_test'])) {
@@ -29,7 +102,6 @@ if (!empty($input['is_dev_test'])) {
         AuthHelper::setCurrentUser($user);
         jsonResponse('success', $user, 'Đăng nhập chế độ thử nghiệm thành công');
     } catch (Throwable $e) {
-        // Nếu DB chưa bật, vẫn cho phép đăng nhập dev user
         AuthHelper::setCurrentUser($devUser);
         jsonResponse('success', $devUser, 'Đăng nhập chế độ thử nghiệm (Offline Mode) thành công');
     }

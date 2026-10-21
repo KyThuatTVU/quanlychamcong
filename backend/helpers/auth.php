@@ -61,6 +61,26 @@ class AuthHelper {
         return null;
     }
 
+    public static function getClientId(): string {
+        $file = __DIR__ . '/../config/google_client_id.txt';
+        if (file_exists($file)) {
+            $id = trim(file_get_contents($file));
+            if (!empty($id)) {
+                return $id;
+            }
+        }
+        return defined('GOOGLE_CLIENT_ID') ? GOOGLE_CLIENT_ID : '';
+    }
+
+    public static function saveClientId(string $clientId): bool {
+        $file = __DIR__ . '/../config/google_client_id.txt';
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        return (bool)file_put_contents($file, trim($clientId));
+    }
+
     public static function getCurrentUser(): ?array {
         return $_SESSION['user'] ?? null;
     }

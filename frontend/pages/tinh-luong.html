@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bảng Tính Lương Tháng — HappyKids HRM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .cell-currency-bold {
+      font-weight: 700;
+      color: var(--color-secondary);
+    }
+    .cell-net-salary {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-accent);
+    }
+    .action-btn-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      justify-content: flex-end;
+    }
+    .action-btn-group .btn {
+      padding: 5px 8px;
+    }
+  </style>
+</head>
+<body>
+  <aside class="app-sidebar">
+    <div class="brand-header">
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+        <div class="brand-logo-icon">
+          <i data-lucide="graduation-cap"></i>
+        </div>
+        <div class="brand-text">
+          <h2>HAPPYKIDS</h2>
+          <p>Quản Lý Nhân Sự & Công</p>
+        </div>
+      </div>
+      <button class="btn-sidebar-close" id="btn-sidebar-collapse" title="Thu gọn Menu để thấy full bảng">
+        <i data-lucide="chevron-left"></i>
+      </button>
+    </div>
+
+    <div class="sidebar-branch-selector">
+      <label>Cơ Sở Đang Chọn</label>
+      <select id="sidebar-branch-select" class="branch-select-box">
+        <option value="1">Chi nhánh Càng Long</option>
+        <option value="2">Chi nhánh Tân Nhựt</option>
+      </select>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Nghiệp vụ chính</div>
+      <a href="index.html" class="nav-item">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Tổng quan</span>
+      </a>
+      <a href="cham-cong.html" class="nav-item">
+        <i data-lucide="calendar-check"></i>
+        <span>Chấm công chi tiết</span>
+      </a>
+      <a href="nhan-su.html" class="nav-item">
+        <i data-lucide="users"></i>
+        <span>Hồ sơ giáo viên</span>
+      </a>
+      <a href="tinh-luong.html" class="nav-item active">
+        <i data-lucide="calculator"></i>
+        <span>Bảng tính lương</span>
+      </a>
+
+      <div class="nav-section-title">Hệ thống</div>
+      <a href="cau-hinh.html" class="nav-item">
+        <i data-lucide="settings"></i>
+        <span>Cấu hình tham số</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <img src="https://ui-avatars.com/api/?name=Admin&background=2563EB&color=fff" alt="User Avatar" class="user-avatar">
+      <div class="user-info">
+        <div class="user-name">Đang tải...</div>
+        <div class="user-role">Quản trị viên</div>
+      </div>
+      <button class="btn-logout" id="btn-logout" title="Đăng xuất">
+        <i data-lucide="log-out"></i>
+      </button>
+    </div>
+  </aside>
+
+  <main class="app-main">
+    <header class="app-header">
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+        <button class="btn-toggle-sidebar" id="btn-toggle-sidebar" title="Thu gọn / Mở rộng thanh Menu">
+          <i data-lucide="menu"></i>
+          <span class="btn-toggle-text">Thu gọn Menu</span>
+        </button>
+        <div class="header-title-box">
+          <h1 id="page-branch-title">Bảng Tổng Hợp Tính Lương</h1>
+          <p>Tự động tổng hợp ngày công, cho phép thêm, xóa, sửa từng thông số lương linh hoạt</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- Nút Thêm Dòng Lương -->
+        <button class="btn btn-primary" id="btn-add-payroll">
+          <i data-lucide="plus"></i>
+          <span>Thêm Dòng Lương</span>
+        </button>
+        <!-- Nút Tính lại tự động từ chấm công -->
+        <button class="btn btn-secondary btn-sm" id="btn-recalculate" title="Tính toán lại toàn bộ bảng lương từ dữ liệu chấm công">
+          <i data-lucide="refresh-cw"></i>
+          <span>Tính Lại Tự Động</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="app-content">
+      <!-- BỘ LỌC KỲ LƯƠNG & TAB -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-body" style="padding: 16px 20px;">
+          <div class="filter-toolbar" style="margin-bottom: 0;">
+            <div class="filter-group">
+              <label class="form-label" style="margin-bottom: 0; font-size: 13px;">Kỳ tính lương:</label>
+              <select id="select-month" class="form-control" style="width: 120px; padding: 6px 12px;">
+                <option value="1">Tháng 1</option>
+                <option value="2">Tháng 2</option>
+                <option value="3">Tháng 3</option>
+                <option value="4">Tháng 4</option>
+                <option value="5">Tháng 5</option>
+                <option value="6">Tháng 6</option>
+                <option value="7">Tháng 7</option>
+                <option value="8">Tháng 8</option>
+                <option value="9">Tháng 9</option>
+                <option value="10" selected>Tháng 10</option>
+                <option value="11">Tháng 11</option>
+                <option value="12">Tháng 12</option>
+              </select>
+              <select id="select-year" class="form-control" style="width: 100px; padding: 6px 12px;">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+
+            <div class="tab-pill-group">
+              <button class="tab-pill active" id="tab-fixed">Lương Cứng</button>
+              <button class="tab-pill" id="tab-hourly">Lương Theo Giờ</button>
+            </div>
+
+            <div style="font-size: 14px; font-weight: 700; color: var(--color-primary); background: #EFF6FF; padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid #BFDBFE;" id="summary-total-cost">
+              Tổng chi lương: 0 ₫
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BẢNG TỔNG HỢP LƯƠNG -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" id="payroll-card-title">Bảng Lương Tháng 10/2026</div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table-clean" id="payroll-table">
+              <thead id="payroll-thead"></thead>
+              <tbody id="payroll-tbody">
+                <tr>
+                  <td colspan="15" style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                    Đang tính toán bảng lương...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: SỬA ĐẦY ĐỦ THÔNG SỐ LƯƠNG CỦA 1 GIÁO VIÊN -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="edit-payroll-modal">
+    <div class="modal-dialog" style="max-width: 650px;">
+      <div class="modal-header">
+        <div class="modal-title" id="edit-payroll-title">Sửa Thông Số Lương Giáo Viên</div>
+        <button class="modal-close" onclick="closeEditPayrollModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-payroll-form">
+          <input type="hidden" id="edit-emp-id">
+          <input type="hidden" id="edit-salary-type">
+
+          <!-- THÔNG BÁO TÊN GIÁO VIÊN -->
+          <div style="background: var(--color-surface-muted); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+            <strong id="edit-emp-display-name" style="font-size: 15px; color: var(--color-primary);">--</strong>
+            <span id="edit-emp-display-type" style="font-size: 12px; margin-left: 8px; color: var(--color-text-secondary);">--</span>
+          </div>
+
+          <!-- CÁC Ô NHẬP LƯƠNG CỨNG -->
+          <div id="edit-section-fixed">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Lương cơ bản (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-f-base-salary" step="100000" oninput="calcEditLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Số ngày công X (ngày)</label>
+                <input type="number" class="form-control" id="edit-f-days-x" step="0.5" oninput="calcEditLive()">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Lương theo ngày công (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-f-salary-by-days" step="1000" oninput="calcEditLiveNet()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tiền tăng ca (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-f-ot-pay" step="10000" oninput="calcEditLiveNet()">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Phụ cấp Bán trú (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-f-boarding-pay" step="10000" oninput="calcEditLiveNet()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phụ cấp Chuyên cần (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-f-att-allowance" step="10000" oninput="calcEditLiveNet()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tiền cơm (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-f-lunch-pay" step="1000" oninput="calcEditLiveNet()">
+              </div>
+            </div>
+          </div>
+
+          <!-- CÁC Ô NHẬP LƯƠNG THEO GIỜ -->
+          <div id="edit-section-hourly" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tổng ca dạy (ca 90p)</label>
+                <input type="number" class="form-control" id="edit-h-slots" step="0.5" oninput="calcEditLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Đơn giá / ca (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-h-rate" step="5000" oninput="calcEditLive()">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tiền lương theo ca (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-h-salary-by-slots" step="1000" oninput="calcEditLiveNet()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Số buổi bán trú (buổi)</label>
+                <input type="number" class="form-control" id="edit-h-boarding-days" step="1" oninput="calcEditLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tiền phụ cấp bán trú (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-h-boarding-pay" step="10000" oninput="calcEditLiveNet()">
+              </div>
+            </div>
+          </div>
+
+          <!-- THƯỞNG, KHẤU TRỪ & THỰC LĨNH CHUNG -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" style="color: var(--color-accent);">Thưởng thêm (+) (VNĐ)</label>
+              <input type="number" class="form-control" id="edit-bonus" step="50000" placeholder="0" oninput="calcEditLiveNet()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="color: var(--color-danger);">Khấu trừ / Phạt (-) (VNĐ)</label>
+              <input type="number" class="form-control" id="edit-deductions" step="10000" placeholder="0" oninput="calcEditLiveNet()">
+            </div>
+          </div>
+
+          <!-- BANNER THỰC LĨNH TÍNH TỨC THÌ -->
+          <div style="background: #F0FDF4; border: 1px solid #BBF7D0; padding: 12px 16px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <span style="font-weight: 600; color: #166534;">TỔNG THỰC LĨNH DỰ KIẾN:</span>
+            <span id="edit-display-net" style="font-size: 18px; font-weight: 700; color: var(--color-accent);">0 ₫</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Ghi chú bảng lương</label>
+            <input type="text" class="form-control" id="edit-note" placeholder="Ghi chú điều chỉnh...">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeEditPayrollModal()">Hủy</button>
+        <button type="button" class="btn btn-accent" id="btn-submit-edit-payroll">
+          <i data-lucide="check"></i> Lưu Cập Nhật
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: THÊM GIÁO VIÊN VÀO BẢNG LƯƠNG THÁNG -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="add-payroll-modal">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="modal-header">
+        <div class="modal-title">Thêm Giáo Viên Vào Bảng Lương Tháng</div>
+        <button class="modal-close" onclick="closeAddPayrollModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-payroll-form">
+          <div class="form-group">
+            <label class="form-label">Chọn Giáo Viên <span style="color: red;">*</span></label>
+            <select class="form-control" id="add-emp-select" onchange="onSelectAddEmployee(this.value)">
+              <option value="">-- Chọn giáo viên trong chi nhánh --</option>
+            </select>
+          </div>
+
+          <div id="add-fields-fixed" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Lương cơ bản (VNĐ)</label>
+                <input type="number" class="form-control" id="add-f-base-salary" placeholder="5500000" oninput="calcAddLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Số ngày công X (ngày)</label>
+                <input type="number" class="form-control" id="add-f-days-x" step="0.5" value="26" oninput="calcAddLive()">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tiền tăng ca (VNĐ)</label>
+                <input type="number" class="form-control" id="add-f-ot-pay" value="0" oninput="calcAddLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phụ cấp Bán trú (VNĐ)</label>
+                <input type="number" class="form-control" id="add-f-boarding-pay" value="0" oninput="calcAddLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Chuyên cần (VNĐ)</label>
+                <input type="number" class="form-control" id="add-f-att-pay" value="0" oninput="calcAddLive()">
+              </div>
+            </div>
+          </div>
+
+          <div id="add-fields-hourly" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tổng ca dạy (ca)</label>
+                <input type="number" class="form-control" id="add-h-slots" step="0.5" placeholder="0" oninput="calcAddLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Đơn giá / ca (VNĐ)</label>
+                <input type="number" class="form-control" id="add-h-rate" value="120000" oninput="calcAddLive()">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Số buổi bán trú (buổi)</label>
+                <input type="number" class="form-control" id="add-h-boarding-days" value="0" oninput="calcAddLive()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phụ cấp bán trú (VNĐ)</label>
+                <input type="number" class="form-control" id="add-h-boarding-pay" value="0" oninput="calcAddLive()">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row" id="add-fields-common" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" style="color: var(--color-accent);">Thưởng thêm (VNĐ)</label>
+              <input type="number" class="form-control" id="add-bonus" value="0" oninput="calcAddLive()">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="color: var(--color-danger);">Khấu trừ (VNĐ)</label>
+              <input type="number" class="form-control" id="add-deductions" value="0" oninput="calcAddLive()">
+            </div>
+          </div>
+
+          <div id="add-banner-net" style="display: none; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 12px; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600; color: #166534;">THỰC LĨNH TÍNH TOÁN:</span>
+            <span id="add-display-net" style="font-size: 16px; font-weight: 700; color: var(--color-accent);">0 ₫</span>
+          </div>
+
+          <div class="form-group" id="add-group-note" style="display: none;">
+            <label class="form-label">Ghi chú</label>
+            <input type="text" class="form-control" id="add-note" placeholder="Ghi chú thêm...">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAddPayrollModal()">Hủy</button>
+        <button type="button" class="btn btn-accent" id="btn-submit-add-payroll">
+          <i data-lucide="plus"></i> Thêm Vào Bảng Lương
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 3: ĐIỀU CHỈNH NHANH THƯỞNG / KHẤU TRỪ (NHƯ CŨ) -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="adjustment-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title" id="adj-emp-name">Điều Chỉnh Lương</div>
+        <button class="modal-close" onclick="closeAdjustmentModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="adjustment-form">
+          <input type="hidden" id="adj-emp-id">
+          <div class="form-group">
+            <label class="form-label">Tiền thưởng thêm (VNĐ)</label>
+            <input type="number" class="form-control" id="adj-bonus" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Khấu trừ / Phạt (VNĐ)</label>
+            <input type="number" class="form-control" id="adj-deductions" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ghi chú điều chỉnh</label>
+            <input type="text" class="form-control" id="adj-note" placeholder="Lý do thưởng, phạt đi trễ...">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAdjustmentModal()">Đóng</button>
+        <button type="button" class="btn btn-accent" id="btn-save-adjustment">
+          <i data-lucide="check"></i> Lưu Điều Chỉnh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/tinh-luong.js"></script>
+</body>
+</html>

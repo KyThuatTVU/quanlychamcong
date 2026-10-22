@@ -91,7 +91,7 @@ const excelExporter = {
     const S = this.styles;
 
     // Dòng 1: Tiêu đề công ty/trường
-    sheet.mergeCells('A1:L1');
+    sheet.mergeCells('A1:T1');
     const r1 = sheet.getCell('A1');
     r1.value = 'TRƯỜNG MẦM NON & TRUNG TÂM PHÁT TRIỂN GIÁO DỤC HAPPYKIDS';
     r1.font = { name: S.fontFamily, size: 11, bold: true, color: { argb: S.colors.primaryNavy } };
@@ -99,7 +99,7 @@ const excelExporter = {
     sheet.getRow(1).height = 20;
 
     // Dòng 2: Chi nhánh
-    sheet.mergeCells('A2:L2');
+    sheet.mergeCells('A2:T2');
     const r2 = sheet.getCell('A2');
     r2.value = `Cơ sở: ${branchName}`;
     r2.font = { name: S.fontFamily, size: 10, italic: true, color: { argb: S.colors.textMuted } };
@@ -107,7 +107,7 @@ const excelExporter = {
     sheet.getRow(2).height = 18;
 
     // Dòng 3: Tiêu đề lớn
-    sheet.mergeCells('A3:L3');
+    sheet.mergeCells('A3:T3');
     const r3 = sheet.getCell('A3');
     r3.value = `BẢNG THANH TOÁN TIỀN LƯƠNG GIÁO VIÊN CỐ ĐỊNH — THÁNG ${month}/${year}`;
     r3.font = { name: S.fontFamily, size: 15, bold: true, color: { argb: S.colors.primaryNavy } };
@@ -115,9 +115,9 @@ const excelExporter = {
     sheet.getRow(3).height = 32;
 
     // Dòng 4: Ghi chú quy định công chuẩn
-    sheet.mergeCells('A4:L4');
+    sheet.mergeCells('A4:T4');
     const r4 = sheet.getCell('A4');
-    r4.value = `(Đơn vị tính: VNĐ • Công chuẩn: 26 ngày • Tăng ca: 1.50h/ca • Phụ cấp cơm: 25.000đ/ngày công X)`;
+    r4.value = `(Đơn vị tính: VNĐ • Phụ cấp cơm: 25.000đ/ngày công X • Tăng ca: 1.50h/ca • Lương ngày = Lương CB / Ngày chuẩn)`;
     r4.font = { name: S.fontFamily, size: 9.5, italic: true, color: { argb: S.colors.textMuted } };
     r4.alignment = { vertical: 'middle', horizontal: 'center' };
     sheet.getRow(4).height = 18;
@@ -126,9 +126,10 @@ const excelExporter = {
 
     // Dòng 6: TIÊU ĐỀ BẢNG (HEADERS)
     const headers = [
-      'STT', 'Mã GV', 'Họ và Tên', 'Lương Cơ Bản', 'Ngày Công (X)',
-      'Lương Theo Công', 'Tiền Tăng Ca', 'Phụ Cấp Bán Trú', 'Phụ Cấp Cơm',
-      'Thưởng', 'Khấu Trừ', 'THỰC NHẬN'
+      'STT', 'Mã GV', 'Họ và Tên', 'Chức Vụ', 'Lương Cơ Bản', 'Ngày Chuẩn',
+      'Lương / Ngày', 'Ngày Công (X)', 'Lương Theo Công', 'Số Ca TC', 'Tiền Tăng Ca',
+      'Phụ Cấp Bán Trú', 'Chuyên Cần', 'Phụ Cấp Cơm', 'Thưởng Đi Lại',
+      'Thưởng Khác', 'TỔNG THU', 'Khấu Trừ', 'THỰC LĨNH', 'Nhận Xét của Giám Đốc'
     ];
 
     const hRow = sheet.getRow(6);
@@ -136,11 +137,11 @@ const excelExporter = {
     headers.forEach((h, i) => {
       const cell = hRow.getCell(i + 1);
       cell.value = h;
-      cell.font = { name: S.fontFamily, size: 10.5, bold: true, color: { argb: S.colors.white } };
+      cell.font = { name: S.fontFamily, size: 10, bold: true, color: { argb: S.colors.white } };
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: (i === 11) ? S.colors.accentGreen : S.colors.primaryNavy }
+        fgColor: { argb: (i === 18) ? S.colors.accentGreen : S.colors.primaryNavy }
       };
       cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       cell.border = this.getThinBorder();
@@ -148,28 +149,40 @@ const excelExporter = {
 
     // Dữ liệu dòng
     let curRowIdx = 7;
-    let sumBase = 0, sumSalaryDays = 0, sumOt = 0, sumBoard = 0, sumLunch = 0, sumBonus = 0, sumDeduct = 0, sumNet = 0;
+    let sumBase = 0, sumSalaryDays = 0, sumOtHours = 0, sumOt = 0, sumBoard = 0, sumAtt = 0, sumLunch = 0, sumTravel = 0, sumBonus = 0, sumTotalIncome = 0, sumDeduct = 0, sumNet = 0;
 
     dataList.forEach((item, idx) => {
       const row = sheet.getRow(curRowIdx);
       row.height = 24;
 
       const baseSalary = parseFloat(item.base_salary || 0);
+      const stdDays = parseFloat(item.standard_work_days || item.emp_std_days || 26.0);
+      const dailyRate = parseFloat(item.daily_salary_rate || 0) || (stdDays > 0 ? Math.round(baseSalary / stdDays) : 0);
       const daysX = parseFloat(item.total_days_x || 0);
       const salaryByDays = parseFloat(item.salary_by_days || 0);
+      const otHours = parseFloat(item.total_ot_hours || 0);
+      const otSlots = parseFloat(item.ot_count || (otHours > 0 ? (otHours / 1.5) : 0));
       const otPay = parseFloat(item.ot_pay || 0);
       const boardPay = parseFloat(item.boarding_pay || item.boarding_allowance || 0);
+      const attPay = parseFloat(item.attendance_allowance || 0);
       const lunchPay = parseFloat(item.lunch_allowance || 0);
+      const travelPay = parseFloat(item.travel_allowance || 0);
       const bonus = parseFloat(item.bonus || 0);
+      const totalIncome = parseFloat(item.total_income || (salaryByDays + otPay + boardPay + attPay + lunchPay + travelPay + bonus));
       const deductions = parseFloat(item.deductions || 0);
       const netSalary = parseFloat(item.net_salary || 0);
+      const directorReview = item.director_review || '';
 
       sumBase += baseSalary;
       sumSalaryDays += salaryByDays;
+      sumOtHours += otSlots;
       sumOt += otPay;
       sumBoard += boardPay;
+      sumAtt += attPay;
       sumLunch += lunchPay;
+      sumTravel += travelPay;
       sumBonus += bonus;
+      sumTotalIncome += totalIncome;
       sumDeduct += deductions;
       sumNet += netSalary;
 
@@ -181,21 +194,29 @@ const excelExporter = {
         idx + 1,
         item.employee_code || `NV${String(item.employee_id).padStart(3, '0')}`,
         item.full_name || '',
+        item.position || 'Giáo viên',
         baseSalary,
+        stdDays,
+        dailyRate,
         daysX,
         salaryByDays,
+        otSlots > 0 ? otSlots : 0,
         otPay,
         boardPay,
+        attPay,
         lunchPay,
+        travelPay,
         bonus,
+        totalIncome,
         deductions,
-        netSalary
+        netSalary,
+        directorReview
       ];
 
       values.forEach((val, colIdx) => {
         const cell = row.getCell(colIdx + 1);
         cell.value = val;
-        cell.font = { name: S.fontFamily, size: 10, color: { argb: S.colors.textMain } };
+        cell.font = { name: S.fontFamily, size: 9.5, color: { argb: S.colors.textMain } };
         cell.border = this.getThinBorder();
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
 
@@ -204,28 +225,43 @@ const excelExporter = {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
         } else if (colIdx === 1) {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          cell.font = { name: S.fontFamily, size: 10, bold: true, color: { argb: S.colors.primaryBlue } };
+          cell.font = { name: S.fontFamily, size: 9.5, bold: true, color: { argb: S.colors.primaryBlue } };
         } else if (colIdx === 2) {
           cell.alignment = { vertical: 'middle', horizontal: 'left' };
-          cell.font = { name: S.fontFamily, size: 10, bold: true };
-        } else if (colIdx === 4) {
+          cell.font = { name: S.fontFamily, size: 9.5, bold: true };
+        } else if (colIdx === 3) {
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          cell.font = { name: S.fontFamily, size: 9 };
+        } else if (colIdx === 5 || colIdx === 7) {
+          // Ngày chuẩn, Ngày công
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
           cell.numFmt = '0.0';
-        } else if (colIdx === 11) {
-          // Thực nhận
+        } else if (colIdx === 9) {
+          // Giờ TC
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.numFmt = '0.0 "h"';
+          if (val > 0) {
+            cell.font = { name: S.fontFamily, size: 9.5, bold: true, color: { argb: 'FFB45309' } };
+          }
+        } else if (colIdx === 18) {
+          // Thực lĩnh (col 19)
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
           cell.numFmt = '#,##0 "₫"';
-          cell.font = { name: S.fontFamily, size: 10.5, bold: true, color: { argb: S.colors.darkGreen } };
+          cell.font = { name: S.fontFamily, size: 10, bold: true, color: { argb: S.colors.darkGreen } };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: S.colors.lightGreen } };
+        } else if (colIdx === 19) {
+          // Nhận xét của Giám đốc (col 20)
+          cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+          cell.font = { name: S.fontFamily, size: 9, italic: true };
         } else {
           // Các cột số tiền
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
           cell.numFmt = '#,##0 "₫"';
-          if (colIdx === 9 && val > 0) {
-            cell.font = { name: S.fontFamily, size: 10, color: { argb: S.colors.accentGreen } };
+          if (colIdx === 15 && val > 0) {
+            cell.font = { name: S.fontFamily, size: 9.5, color: { argb: S.colors.accentGreen } };
           }
-          if (colIdx === 10 && val > 0) {
-            cell.font = { name: S.fontFamily, size: 10, color: { argb: S.colors.dangerRed } };
+          if (colIdx === 17 && val > 0) {
+            cell.font = { name: S.fontFamily, size: 9.5, color: { argb: S.colors.dangerRed } };
           }
         }
       });
@@ -236,26 +272,29 @@ const excelExporter = {
     // DÒNG TỔNG CỘNG (TOTAL ROW)
     const totRow = sheet.getRow(curRowIdx);
     totRow.height = 28;
-    sheet.mergeCells(`A${curRowIdx}:C${curRowIdx}`);
+    sheet.mergeCells(`A${curRowIdx}:D${curRowIdx}`);
     const totLabel = totRow.getCell(1);
     totLabel.value = 'TỔNG CỘNG TOÀN BỘ';
     totLabel.alignment = { vertical: 'middle', horizontal: 'center' };
-    totLabel.font = { name: S.fontFamily, size: 11, bold: true, color: { argb: S.colors.primaryNavy } };
+    totLabel.font = { name: S.fontFamily, size: 10.5, bold: true, color: { argb: S.colors.primaryNavy } };
 
     const totalCells = [
-      { col: 4, val: sumBase },
-      { col: 5, val: '' },
-      { col: 6, val: sumSalaryDays },
-      { col: 7, val: sumOt },
-      { col: 8, val: sumBoard },
-      { col: 9, val: sumLunch },
-      { col: 10, val: sumBonus },
-      { col: 11, val: sumDeduct },
-      { col: 12, val: sumNet }
+      { col: 5, val: sumBase },
+      { col: 9, val: sumSalaryDays },
+      { col: 10, val: sumOtHours > 0 ? sumOtHours : '' },
+      { col: 11, val: sumOt },
+      { col: 12, val: sumBoard },
+      { col: 13, val: sumAtt },
+      { col: 14, val: sumLunch },
+      { col: 15, val: sumTravel },
+      { col: 16, val: sumBonus },
+      { col: 17, val: sumTotalIncome },
+      { col: 18, val: sumDeduct },
+      { col: 19, val: sumNet }
     ];
 
     // Áp dụng định dạng dòng tổng
-    for (let c = 1; c <= 12; c++) {
+    for (let c = 1; c <= 20; c++) {
       const cell = totRow.getCell(c);
       cell.border = {
         top: { style: 'thin', color: { argb: S.colors.borderMedium } },
@@ -270,14 +309,20 @@ const excelExporter = {
       if (tc.val !== '') {
         const cell = totRow.getCell(tc.col);
         cell.value = tc.val;
-        cell.numFmt = '#,##0 "₫"';
-        cell.alignment = { vertical: 'middle', horizontal: 'right' };
-        cell.font = { name: S.fontFamily, size: 11, bold: true, color: (tc.col === 12 ? S.colors.darkGreen : S.colors.primaryNavy) };
+        if (tc.col === 10) {
+          cell.numFmt = '0.0 "h"';
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.font = { name: S.fontFamily, size: 10.5, bold: true, color: { argb: 'FFB45309' } };
+        } else {
+          cell.numFmt = '#,##0 "₫"';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+          cell.font = { name: S.fontFamily, size: 10.5, bold: true, color: (tc.col === 19 ? S.colors.darkGreen : S.colors.primaryNavy) };
+        }
       }
     });
 
     // Tự động căn chỉnh độ rộng cột tối ưu
-    const colWidths = [6, 12, 28, 16, 14, 16, 14, 16, 14, 14, 14, 20];
+    const colWidths = [6, 12, 28, 18, 16, 12, 14, 13, 16, 12, 14, 16, 14, 14, 14, 14, 18, 14, 20, 36];
     colWidths.forEach((w, i) => {
       sheet.getColumn(i + 1).width = w;
     });
@@ -288,9 +333,9 @@ const excelExporter = {
     sheet.getCell(`C${signRowIdx}`).font = { name: S.fontFamily, size: 10, bold: true };
     sheet.getCell(`C${signRowIdx}`).alignment = { horizontal: 'center' };
 
-    sheet.getCell(`L${signRowIdx}`).value = 'Ban Giám Hiệu Phê Duyệt';
-    sheet.getCell(`L${signRowIdx}`).font = { name: S.fontFamily, size: 10, bold: true };
-    sheet.getCell(`L${signRowIdx}`).alignment = { horizontal: 'center' };
+    sheet.getCell(`S${signRowIdx}`).value = 'Ban Giám Hiệu Phê Duyệt';
+    sheet.getCell(`S${signRowIdx}`).font = { name: S.fontFamily, size: 10, bold: true };
+    sheet.getCell(`S${signRowIdx}`).alignment = { horizontal: 'center' };
   },
 
   // Xây dựng Sheet Lương GV Thỉnh Giảng (Dạy theo giờ)
@@ -684,7 +729,7 @@ const excelExporter = {
               }
             } else {
               // GV Dạy theo giờ (HOURLY)
-              const slots = parseFloat(att.actual_slots !== undefined && att.actual_slots !== null ? att.actual_slots : (att.total_slots || 0));
+              const slots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') ? parseFloat(att.actual_slots) : 0;
               const hasBt = parseInt(att.has_boarding || 0) === 1;
 
               if (slots > 0 && hasBt) {
@@ -795,12 +840,12 @@ const excelExporter = {
 
       const S = this.styles;
 
-      sheet.mergeCells('A1:J1');
+      sheet.mergeCells('A1:K1');
       sheet.getCell('A1').value = 'TRƯỜNG MẦM NON & TRUNG TÂM PHÁT TRIỂN GIÁO DỤC HAPPYKIDS';
       sheet.getCell('A1').font = { name: S.fontFamily, size: 11, bold: true, color: { argb: S.colors.primaryNavy } };
 
-      sheet.mergeCells('A2:J2');
-      sheet.getCell('A2').value = `DANH SÁCH HỒ SƠ GIÁO VIÊN & NHÂN VIÊN — ${branchName.toUpperCase()}`;
+      sheet.mergeCells('A2:K2');
+      sheet.getCell('A2').value = `DANH SÁCH THÔNG SỐ LƯƠNG HỢP ĐỒNG CỐ ĐỊNH — ${branchName.toUpperCase()}`;
       sheet.getCell('A2').font = { name: S.fontFamily, size: 14, bold: true, color: { argb: S.colors.primaryNavy } };
       sheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
       sheet.getRow(2).height = 28;
@@ -808,8 +853,9 @@ const excelExporter = {
       sheet.getRow(3).height = 6;
 
       const headers = [
-        'STT', 'Mã NV', 'Họ và Tên', 'Chức Vụ', 'Hình Thức Lương',
-        'Lương Cơ Bản', 'Đơn Giá Tiết', 'Đơn Giá Tăng Ca', 'Số Điện Thoại', 'Trạng Thái'
+        'STT', 'Mã GV', 'Họ và Tên', 'Chức Vụ',
+        'Lương Cơ Bản (đ)', 'Ngày Chuẩn', 'Lương / Ngày (đ)',
+        'Thưởng Đi Lại (đ)', 'Chế Độ Cơm', 'Khung Giờ HĐ', 'Ghi Chú Hợp Đồng'
       ];
 
       const hRow = sheet.getRow(4);
@@ -828,19 +874,24 @@ const excelExporter = {
         row.height = 22;
 
         const isFixed = emp.salary_type === 'FIXED';
-        const typeStr = isFixed ? 'Lương cố định' : 'Dạy theo giờ';
+        const stdDays = isFixed ? parseFloat(emp.standard_work_days || 26) : 0;
+        const baseSal = isFixed ? parseFloat(emp.base_salary || 0) : 0;
+        const dailyRate = (isFixed && stdDays > 0) ? Math.round(baseSal / stdDays) : 0;
+        const travelPay = parseFloat(emp.travel_allowance || 0);
+        const lunchStr = isFixed ? (emp.has_lunch_allowance == 1 ? 'Có (25k/ngày)' : 'Không hưởng') : '-';
 
         const values = [
           idx + 1,
           emp.employee_code || '',
           emp.full_name || '',
           emp.position || '',
-          typeStr,
-          parseFloat(emp.base_salary || 0),
-          parseFloat(emp.hourly_rate || 0),
-          parseFloat(emp.overtime_rate || 0),
-          emp.phone || '',
-          emp.status === 'ACTIVE' ? 'Đang làm việc' : 'Đã nghỉ việc'
+          isFixed ? baseSal : parseFloat(emp.hourly_rate || 0),
+          isFixed ? stdDays : '-',
+          isFixed ? dailyRate : '-',
+          travelPay > 0 ? travelPay : 0,
+          lunchStr,
+          emp.time_frame || '-',
+          emp.notes || ''
         ];
 
         values.forEach((v, cIdx) => {
@@ -849,18 +900,28 @@ const excelExporter = {
           cell.font = { name: S.fontFamily, size: 9.5 };
           cell.border = this.getThinBorder();
 
-          if (cIdx === 0 || cIdx === 1 || cIdx === 8 || cIdx === 9) {
+          if (cIdx === 0 || cIdx === 1 || cIdx === 5 || cIdx === 8) {
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          } else if (cIdx === 5 || cIdx === 6 || cIdx === 7) {
+          } else if (cIdx === 4 || cIdx === 6 || cIdx === 7) {
             cell.alignment = { vertical: 'middle', horizontal: 'right' };
-            cell.numFmt = '#,##0 "₫"';
+            if (typeof v === 'number') {
+              cell.numFmt = '#,##0 "₫"';
+            }
           } else {
             cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          }
+
+          if (cIdx === 1) {
+            cell.font = { name: S.fontFamily, size: 9.5, bold: true, color: { argb: S.colors.primaryBlue } };
+          } else if (cIdx === 2) {
+            cell.font = { name: S.fontFamily, size: 9.5, bold: true };
+          } else if (cIdx === 6 && typeof v === 'number') {
+            cell.font = { name: S.fontFamily, size: 9.5, bold: true, color: { argb: S.colors.primaryNavy } };
           }
         });
       });
 
-      const colWidths = [6, 12, 26, 18, 16, 16, 15, 16, 15, 15];
+      const colWidths = [6, 12, 26, 20, 18, 14, 16, 16, 15, 20, 25];
       colWidths.forEach((w, i) => {
         sheet.getColumn(i + 1).width = w;
       });

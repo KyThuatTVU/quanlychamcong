@@ -132,34 +132,54 @@ function filterAndRender(searchTerm = '') {
 
   const tbody = document.getElementById('employee-tbody');
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Không tìm thấy giáo viên nào phù hợp.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Không tìm thấy giáo viên nào phù hợp.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = list.map(emp => {
+  tbody.innerHTML = list.map((emp, index) => {
     const isFixed = emp.salary_type === 'FIXED';
     const typeBadge = isFixed 
       ? `<span class="badge badge-success">Lương cứng</span>` 
       : `<span class="badge badge-warning">Lương theo giờ</span>`;
-    const salaryDisplay = isFixed 
-      ? `${utils.formatCurrency(emp.base_salary)} / tháng` 
-      : `${utils.formatCurrency(emp.hourly_rate)} / ca`;
     
-    // Gộp các phụ cấp
-    const allowances = [];
-    if (emp.attendance_allowance > 0) allowances.push(`CC: ${utils.formatCurrency(emp.attendance_allowance)}`);
-    if (emp.boarding_allowance > 0) allowances.push(`BT: ${utils.formatCurrency(emp.boarding_allowance)}`);
-    const allowStr = allowances.length > 0 ? allowances.join(', ') : '-';
+    const stdDays = isFixed ? parseFloat(emp.standard_work_days || 26) : 0;
+    const baseSal = isFixed ? parseFloat(emp.base_salary || 0) : 0;
+    const dailyRate = (isFixed && stdDays > 0) ? Math.round(baseSal / stdDays) : 0;
+
+    const salaryDisplay = isFixed 
+      ? `<strong>${utils.formatCurrency(emp.base_salary)}</strong>` 
+      : `<strong>${utils.formatCurrency(emp.hourly_rate)}</strong>/ca`;
+
+    const stdDaysDisplay = isFixed 
+      ? `<span class="badge badge-info" style="font-weight: 600;">${stdDays} ngày</span>` 
+      : `-`;
+
+    const dailyDisplay = isFixed 
+      ? `<strong style="color: var(--color-primary);">${utils.formatCurrency(dailyRate)}</strong>` 
+      : `-`;
+
+    const travelDisplay = emp.travel_allowance > 0 
+      ? `<span style="font-weight: 600; color: #047857;">${utils.formatCurrency(emp.travel_allowance)}</span>` 
+      : `<span style="color: #9CA3AF;">-</span>`;
+
+    const lunchDisplay = isFixed 
+      ? (emp.has_lunch_allowance == 1 
+          ? `<span class="badge badge-success" title="Được hưởng 25.000đ/ngày đi làm">Có (25k)</span>` 
+          : `<span class="badge badge-danger" style="background:#FFE4E6; color:#BE123C; border:1px solid #FECDD3;" title="Không hưởng phụ cấp cơm">Không</span>`)
+      : `<span style="color: #9CA3AF;">-</span>`;
 
     return `
       <tr>
+        <td style="text-align: center; color: var(--color-text-secondary); font-size: 12.5px;">${index + 1}</td>
         <td><strong style="color: var(--color-primary);">${emp.employee_code}</strong></td>
         <td><strong>${emp.full_name}</strong></td>
         <td>${emp.position || '-'}</td>
-        <td>${emp.phone || '-'}</td>
         <td>${typeBadge}</td>
-        <td><strong>${salaryDisplay}</strong></td>
-        <td><span style="font-size: 12px; color: var(--color-text-secondary);">${allowStr}</span></td>
+        <td>${salaryDisplay}</td>
+        <td style="text-align: center;">${stdDaysDisplay}</td>
+        <td>${dailyDisplay}</td>
+        <td>${travelDisplay}</td>
+        <td style="text-align: center;">${lunchDisplay}</td>
         <td><span style="font-size: 12px; color: var(--color-text-secondary);">${emp.time_frame || '-'}</span></td>
         <td style="text-align: right;">
           <button class="btn btn-secondary btn-sm" onclick="openEditModal(${emp.id})" title="Chỉnh sửa hồ sơ">
@@ -177,14 +197,27 @@ function filterAndRender(searchTerm = '') {
 }
 
 function toggleSalaryFields(type) {
+  const fixedSection = document.getElementById('section-salary-fixed');
+  const hourlySection = document.getElementById('section-salary-hourly');
+
   if (type === 'FIXED') {
-    document.getElementById('group-base-salary').style.display = 'block';
-    document.getElementById('group-hourly-rate').style.display = 'none';
+    if (fixedSection) fixedSection.style.display = 'block';
+    if (hourlySection) hourlySection.style.display = 'none';
   } else {
-    document.getElementById('group-base-salary').style.display = 'none';
-    document.getElementById('group-hourly-rate').style.display = 'block';
+    if (fixedSection) fixedSection.style.display = 'none';
+    if (hourlySection) hourlySection.style.display = 'block';
   }
 }
+
+window.calcEmpDailyRateLive = function() {
+  const base = parseFloat(document.getElementById('emp-form-base-salary')?.value) || 0;
+  const stdDays = parseFloat(document.getElementById('emp-form-std-days')?.value) || 26.0;
+  const dailyRate = stdDays > 0 ? Math.round(base / stdDays) : 0;
+  const el = document.getElementById('emp-form-daily-rate');
+  if (el) {
+    el.value = dailyRate > 0 ? utils.formatCurrency(dailyRate) : '0 ₫';
+  }
+};
 
 function openAddModal() {
   document.getElementById('emp-modal-title').textContent = 'Thêm Hồ Sơ Giáo Viên Mới';
@@ -194,43 +227,73 @@ function openAddModal() {
   document.getElementById('emp-form-position').value = '';
   document.getElementById('emp-form-phone').value = '';
   document.getElementById('emp-form-salary-type').value = 'FIXED';
+  
+  // Fields lương cứng
   document.getElementById('emp-form-base-salary').value = '';
-  document.getElementById('emp-form-hourly-rate').value = '';
-  document.getElementById('emp-form-ot-rate').value = '120000';
-  document.getElementById('emp-form-att-rate').value = '';
+  document.getElementById('emp-form-std-days').value = '26.0';
+  document.getElementById('emp-form-att-rate').value = '0';
+  document.getElementById('emp-form-travel-rate').value = '';
+  document.getElementById('emp-form-has-lunch').value = '1';
+  document.getElementById('emp-form-ot-rate').value = '150000';
   document.getElementById('emp-form-board-rate').value = '';
+
+  // Fields lương theo giờ
+  if (document.getElementById('emp-form-hourly-rate')) document.getElementById('emp-form-hourly-rate').value = '120000';
+  if (document.getElementById('emp-form-hourly-board-rate')) document.getElementById('emp-form-hourly-board-rate').value = '30000';
+  if (document.getElementById('emp-form-hourly-travel-rate')) document.getElementById('emp-form-hourly-travel-rate').value = '';
+  if (document.getElementById('emp-form-hourly-att-rate')) document.getElementById('emp-form-hourly-att-rate').value = '0';
+
+  // Khung giờ & ghi chú
   document.getElementById('emp-form-time-frame').value = '8:00 - 17:30 (9h30)';
   document.getElementById('emp-form-std-hours').value = '8.0';
   document.getElementById('emp-form-time-in').value = '08:00';
   document.getElementById('emp-form-time-out').value = '17:30';
+  if (document.getElementById('emp-form-notes')) document.getElementById('emp-form-notes').value = '';
 
+  calcEmpDailyRateLive();
   toggleSalaryFields('FIXED');
   document.getElementById('employee-modal').classList.add('active');
+  utils.initIcons();
 }
 
 window.openEditModal = function(id) {
   const emp = allEmployees.find(e => e.id == id);
   if (!emp) return;
 
-  document.getElementById('emp-modal-title').textContent = `Chỉnh Sửa: ${emp.full_name} (${emp.employee_code})`;
+  document.getElementById('emp-modal-title').textContent = `Chỉnh Sửa Hồ Sơ: ${emp.full_name} (${emp.employee_code})`;
   document.getElementById('emp-form-id').value = emp.id;
   document.getElementById('emp-form-code').value = emp.employee_code;
   document.getElementById('emp-form-name').value = emp.full_name;
   document.getElementById('emp-form-position').value = emp.position || '';
   document.getElementById('emp-form-phone').value = emp.phone || '';
   document.getElementById('emp-form-salary-type').value = emp.salary_type;
-  document.getElementById('emp-form-base-salary').value = emp.base_salary || '';
-  document.getElementById('emp-form-hourly-rate').value = emp.hourly_rate || '';
-  document.getElementById('emp-form-ot-rate').value = emp.overtime_rate || '120000';
-  document.getElementById('emp-form-att-rate').value = emp.attendance_allowance || '';
-  document.getElementById('emp-form-board-rate').value = emp.boarding_allowance || '';
+  
+  if (emp.salary_type === 'HOURLY') {
+    if (document.getElementById('emp-form-hourly-rate')) document.getElementById('emp-form-hourly-rate').value = emp.hourly_rate || 120000;
+    if (document.getElementById('emp-form-hourly-board-rate')) document.getElementById('emp-form-hourly-board-rate').value = emp.boarding_allowance || 30000;
+    if (document.getElementById('emp-form-hourly-travel-rate')) document.getElementById('emp-form-hourly-travel-rate').value = emp.travel_allowance || '';
+    if (document.getElementById('emp-form-hourly-att-rate')) document.getElementById('emp-form-hourly-att-rate').value = '0';
+  } else {
+    document.getElementById('emp-form-base-salary').value = emp.base_salary || '';
+    document.getElementById('emp-form-std-days').value = emp.standard_work_days || '26.0';
+    document.getElementById('emp-form-att-rate').value = '0';
+    document.getElementById('emp-form-travel-rate').value = emp.travel_allowance || '';
+    document.getElementById('emp-form-has-lunch').value = (emp.has_lunch_allowance !== undefined && emp.has_lunch_allowance !== null) ? String(emp.has_lunch_allowance) : '1';
+    document.getElementById('emp-form-ot-rate').value = emp.overtime_rate || '150000';
+    document.getElementById('emp-form-board-rate').value = emp.boarding_allowance || '';
+  }
+
+  calcEmpDailyRateLive();
+
   document.getElementById('emp-form-time-frame').value = emp.time_frame || '';
   document.getElementById('emp-form-std-hours').value = emp.standard_hours || '8.0';
   document.getElementById('emp-form-time-in').value = emp.default_time_in ? emp.default_time_in.substring(0, 5) : '';
   document.getElementById('emp-form-time-out').value = emp.default_time_out ? emp.default_time_out.substring(0, 5) : '';
+  if (document.getElementById('emp-form-notes')) document.getElementById('emp-form-notes').value = emp.notes || '';
 
   toggleSalaryFields(emp.salary_type);
   document.getElementById('employee-modal').classList.add('active');
+  utils.initIcons();
 };
 
 window.closeEmployeeModal = function() {
@@ -247,23 +310,41 @@ async function saveEmployee() {
     return;
   }
 
+  const salaryType = document.getElementById('emp-form-salary-type').value;
+
   const payload = {
     branch_id: currentBranchId,
     employee_code: code,
     full_name: name,
     position: document.getElementById('emp-form-position').value.trim(),
     phone: document.getElementById('emp-form-phone').value.trim(),
-    salary_type: document.getElementById('emp-form-salary-type').value,
-    base_salary: parseFloat(document.getElementById('emp-form-base-salary').value) || 0,
-    hourly_rate: parseFloat(document.getElementById('emp-form-hourly-rate').value) || 0,
-    overtime_rate: parseFloat(document.getElementById('emp-form-ot-rate').value) || 120000,
-    attendance_allowance: parseFloat(document.getElementById('emp-form-att-rate').value) || 0,
-    boarding_allowance: parseFloat(document.getElementById('emp-form-board-rate').value) || 0,
+    salary_type: salaryType,
     time_frame: document.getElementById('emp-form-time-frame').value.trim(),
     standard_hours: parseFloat(document.getElementById('emp-form-std-hours').value) || 8.0,
     default_time_in: normalizeTime24(document.getElementById('emp-form-time-in').value) || null,
-    default_time_out: normalizeTime24(document.getElementById('emp-form-time-out').value) || null
+    default_time_out: normalizeTime24(document.getElementById('emp-form-time-out').value) || null,
+    notes: document.getElementById('emp-form-notes') ? document.getElementById('emp-form-notes').value.trim() : ''
   };
+
+  if (salaryType === 'HOURLY') {
+    payload.hourly_rate = parseFloat(document.getElementById('emp-form-hourly-rate')?.value) || 120000;
+    payload.boarding_allowance = parseFloat(document.getElementById('emp-form-hourly-board-rate')?.value) || 0;
+    payload.travel_allowance = parseFloat(document.getElementById('emp-form-hourly-travel-rate')?.value) || 0;
+    payload.attendance_allowance = parseFloat(document.getElementById('emp-form-hourly-att-rate')?.value) || 0;
+    payload.base_salary = 0;
+    payload.standard_work_days = 26.0;
+    payload.has_lunch_allowance = 0;
+    payload.overtime_rate = 150000;
+  } else {
+    payload.base_salary = parseFloat(document.getElementById('emp-form-base-salary').value) || 0;
+    payload.standard_work_days = parseFloat(document.getElementById('emp-form-std-days').value) || 26.0;
+    payload.attendance_allowance = parseFloat(document.getElementById('emp-form-att-rate').value) || 0;
+    payload.travel_allowance = parseFloat(document.getElementById('emp-form-travel-rate').value) || 0;
+    payload.has_lunch_allowance = parseInt(document.getElementById('emp-form-has-lunch').value),
+    payload.overtime_rate = parseFloat(document.getElementById('emp-form-ot-rate').value) || 150000;
+    payload.boarding_allowance = parseFloat(document.getElementById('emp-form-board-rate').value) || 0;
+    payload.hourly_rate = 0;
+  }
 
   let res;
   if (id) {

@@ -67,6 +67,10 @@
         <i data-lucide="calculator"></i>
         <span>Bảng tính lương</span>
       </a>
+      <a href="phieu-luong.html" class="nav-item">
+        <i data-lucide="receipt"></i>
+        <span>Lương chi tiết</span>
+      </a>
 
       <div class="nav-section-title">Hệ thống</div>
       <a href="cau-hinh.html" class="nav-item active">
@@ -120,7 +124,7 @@
         </div>
         <div class="card-body">
           <form id="config-form" novalidate>
-            <div class="form-row">
+            <div class="grid-2">
               <div class="form-group">
                 <label class="form-label">Số ngày công chuẩn trong tháng (ngày)</label>
                 <input type="number" step="any" class="form-control" id="cfg-std-days" value="26" required>
@@ -133,7 +137,7 @@
               </div>
             </div>
 
-            <div class="form-row">
+            <div class="grid-2">
               <div class="form-group">
                 <label class="form-label">Phụ cấp cơm trưa theo ngày công (VNĐ/ngày)</label>
                 <input type="number" step="any" class="form-control" id="cfg-lunch-rate" value="25000" required>
@@ -148,7 +152,7 @@
               </div>
             </div>
 
-            <div class="form-row">
+            <div class="grid-2">
               <div class="form-group">
                 <label class="form-label">Đơn giá ca chuẩn mặc định (VNĐ/ca)</label>
                 <input type="number" step="any" class="form-control" id="cfg-slot-rate" value="120000" required>

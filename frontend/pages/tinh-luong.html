@@ -74,6 +74,10 @@
         <i data-lucide="calculator"></i>
         <span>Bảng tính lương</span>
       </a>
+      <a href="phieu-luong.html" class="nav-item">
+        <i data-lucide="receipt"></i>
+        <span>Lương chi tiết</span>
+      </a>
 
       <div class="nav-section-title">Hệ thống</div>
       <a href="cau-hinh.html" class="nav-item">
@@ -107,6 +111,11 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- Nút Cấu Hình Chuyên Cần Tháng -->
+        <button class="btn btn-secondary" id="btn-batch-attendance" title="Cấu hình tiền Chuyên cần cho tất cả giáo viên trong tháng 1 lần nhanh chóng" style="color: #1D4ED8; border-color: #BFDBFE; background: #EFF6FF;">
+          <i data-lucide="award" style="color: #2563EB;"></i>
+          <span>Cấu Hình Chuyên Cần</span>
+        </button>
         <!-- Nút Xuất Excel Bản Đẹp -->
         <button class="btn btn-secondary" id="btn-export-excel" title="Xuất toàn bộ bảng lương (cả 2 hình thức lương) ra file Excel định dạng đẹp chuyên nghiệp">
           <i data-lucide="file-spreadsheet" style="color: #059669;"></i>
@@ -158,8 +167,14 @@
               <button class="tab-pill" id="tab-hourly">Lương Theo Giờ</button>
             </div>
 
-            <div style="font-size: 14px; font-weight: 700; color: var(--color-primary); background: #EFF6FF; padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid #BFDBFE;" id="summary-total-cost">
-              Tổng chi lương: 0 ₫
+            <div style="display: flex; align-items: center; gap: 10px; margin-left: auto;">
+              <div style="font-size: 13.5px; font-weight: 600; color: #B45309; background: #FEF3C7; padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid #FDE68A; display: none;" id="summary-total-ot">
+                <i data-lucide="clock" style="width: 14px; height: 14px; display: inline-block; vertical-align: -2px;"></i>
+                <span id="summary-total-ot-text">Tăng ca: 0h — 0 ₫</span>
+              </div>
+              <div style="font-size: 14px; font-weight: 700; color: var(--color-primary); background: #EFF6FF; padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid #BFDBFE;" id="summary-total-cost">
+                Tổng chi lương: 0 ₫
+              </div>
             </div>
           </div>
         </div>
@@ -189,12 +204,12 @@
   </main>
 
   <!-- ========================================================================= -->
-  <!-- MODAL 1: SỬA ĐẦY ĐỦ THÔNG SỐ LƯƠNG CỦA 1 GIÁO VIÊN -->
+  <!-- MODAL 1: CẤU HÌNH ĐẦY ĐỦ THÔNG SỐ PHIẾU LƯƠNG CỦA 1 GIÁO VIÊN -->
   <!-- ========================================================================= -->
   <div class="modal-overlay" id="edit-payroll-modal">
-    <div class="modal-dialog" style="max-width: 650px;">
+    <div class="modal-dialog modal-lg">
       <div class="modal-header">
-        <div class="modal-title" id="edit-payroll-title">Sửa Thông Số Lương Giáo Viên</div>
+        <div class="modal-title" id="edit-payroll-title">Cấu Hình Phiếu Lương Giáo Viên</div>
         <button class="modal-close" onclick="closeEditPayrollModal()">&times;</button>
       </div>
       <div class="modal-body">
@@ -203,98 +218,169 @@
           <input type="hidden" id="edit-salary-type">
 
           <!-- THÔNG BÁO TÊN GIÁO VIÊN -->
-          <div style="background: var(--color-surface-muted); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px;">
-            <strong id="edit-emp-display-name" style="font-size: 15px; color: var(--color-primary);">--</strong>
-            <span id="edit-emp-display-type" style="font-size: 12px; margin-left: 8px; color: var(--color-text-secondary);">--</span>
+          <div style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-size: 11px; text-transform: uppercase; color: var(--color-primary); font-weight: 700; letter-spacing: 0.5px;">Giáo Viên:</span>
+              <strong id="edit-emp-display-name" style="font-size: 15px; margin-left: 6px; color: var(--color-primary);">--</strong>
+            </div>
+            <span id="edit-emp-display-type" class="badge badge-info">--</span>
           </div>
 
           <!-- CÁC Ô NHẬP LƯƠNG CỨNG -->
           <div id="edit-section-fixed">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Lương cơ bản (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-f-base-salary" step="100000" oninput="calcEditLive()">
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="badge-dollar-sign"></i> 1. Định Mức Lương & Ngày Chuẩn
               </div>
-              <div class="form-group">
-                <label class="form-label">Số ngày công X (ngày)</label>
-                <input type="number" class="form-control" id="edit-f-days-x" step="0.5" oninput="calcEditLive()">
+              <div class="grid-3">
+                <div class="form-group">
+                  <label class="form-label">Lương cơ bản (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-f-base-salary" step="100000" oninput="calcEditLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ngày chuẩn (ngày)</label>
+                  <input type="number" class="form-control" id="edit-f-std-days" step="0.5" oninput="calcEditLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Lương / ngày (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-f-daily-rate" step="1" readonly>
+                </div>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Lương theo ngày công (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-f-salary-by-days" step="1000" oninput="calcEditLiveNet()">
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="calendar-check"></i> 2. Ngày Công Thực Tế & Tiền Tăng Ca
               </div>
-              <div class="form-group">
-                <label class="form-label">Tiền tăng ca (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-f-ot-pay" step="10000" oninput="calcEditLiveNet()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Số ngày công X (ngày)</label>
+                  <input type="number" class="form-control" id="edit-f-days-x" step="0.5" oninput="calcEditLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Lương theo ngày công (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-f-salary-by-days" step="1000" oninput="calcEditLiveNet()">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Số ca tăng ca (ca)</label>
+                  <input type="number" class="form-control" id="edit-f-ot-hours" step="0.5" placeholder="0" oninput="calcEditOtLive()">
+                  <span class="form-hint">Quy chuẩn: 1 ca = 1.5h (90 phút)</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tiền tăng ca (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-f-ot-pay" step="10000" oninput="calcEditLiveNet()">
+                </div>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Phụ cấp Bán trú (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-f-boarding-pay" step="10000" oninput="calcEditLiveNet()">
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="gift"></i> 3. Đãi Ngộ & Đánh Giá Chuyên Cần Cuối Tháng
               </div>
-              <div class="form-group">
-                <label class="form-label">Phụ cấp Chuyên cần (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-f-att-allowance" step="10000" oninput="calcEditLiveNet()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Thưởng Chuyên Cần (VNĐ) <span style="color:#2563EB; font-weight:normal;">— GĐ cho cuối tháng</span></label>
+                  <input type="number" class="form-control" id="edit-f-att-allowance" step="50000" placeholder="0" oninput="calcEditLiveNet()">
+                  <span class="form-hint">Dữ liệu phát sinh: Giám đốc đánh giá đạt chuyên cần mới nhập mức thưởng</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Thưởng đi lại (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-f-travel-pay" step="10000" oninput="calcEditLiveNet()">
+                  <span class="form-hint">Theo thỏa thuận hợp đồng cố định</span>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Tiền cơm (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-f-lunch-pay" step="1000" oninput="calcEditLiveNet()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Tiền cơm (VNĐ) <span style="color:#059669; font-weight:normal;">(= Ngày công X × 25.000đ)</span></label>
+                  <input type="number" class="form-control" id="edit-f-lunch-pay" step="1000" oninput="calcEditLiveNet()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phụ cấp Bán trú (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-f-boarding-pay" step="10000" oninput="calcEditLiveNet()">
+                </div>
               </div>
             </div>
           </div>
 
           <!-- CÁC Ô NHẬP LƯƠNG THEO GIỜ -->
           <div id="edit-section-hourly" style="display: none;">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Tổng ca dạy (ca 90p)</label>
-                <input type="number" class="form-control" id="edit-h-slots" step="0.5" oninput="calcEditLive()">
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="clock"></i> 1. Số Ca Dạy & Đơn Giá
               </div>
-              <div class="form-group">
-                <label class="form-label">Đơn giá / ca (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-h-rate" step="5000" oninput="calcEditLive()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Tổng ca dạy (ca 90p)</label>
+                  <input type="number" class="form-control" id="edit-h-slots" step="0.5" oninput="calcEditLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Đơn giá / ca (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-h-rate" step="5000" oninput="calcEditLive()">
+                </div>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Tiền lương theo ca (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-h-salary-by-slots" step="1000" oninput="calcEditLiveNet()">
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="badge-dollar-sign"></i> 2. Tiền Lương Theo Ca & Bán Trú
               </div>
-              <div class="form-group">
-                <label class="form-label">Số buổi bán trú (buổi)</label>
-                <input type="number" class="form-control" id="edit-h-boarding-days" step="1" oninput="calcEditLive()">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Tiền phụ cấp bán trú (VNĐ)</label>
-                <input type="number" class="form-control" id="edit-h-boarding-pay" step="10000" oninput="calcEditLiveNet()">
+              <div class="grid-3">
+                <div class="form-group">
+                  <label class="form-label">Tiền lương theo ca (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-h-salary-by-slots" step="1000" oninput="calcEditLiveNet()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Số buổi bán trú (buổi)</label>
+                  <input type="number" class="form-control" id="edit-h-boarding-days" step="1" oninput="calcEditLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tiền phụ cấp bán trú (VNĐ)</label>
+                  <input type="number" class="form-control" id="edit-h-boarding-pay" step="10000" oninput="calcEditLiveNet()">
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- THƯỞNG, KHẤU TRỪ & THỰC LĨNH CHUNG -->
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label" style="color: var(--color-accent);">Thưởng thêm (+) (VNĐ)</label>
-              <input type="number" class="form-control" id="edit-bonus" step="50000" placeholder="0" oninput="calcEditLiveNet()">
+          <!-- THƯỞNG THÊM & KHẤU TRỪ -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <i data-lucide="sliders"></i> 4. Điều Chỉnh Thưởng & Khấu Trừ
             </div>
-            <div class="form-group">
-              <label class="form-label" style="color: var(--color-danger);">Khấu trừ / Phạt (-) (VNĐ)</label>
-              <input type="number" class="form-control" id="edit-deductions" step="10000" placeholder="0" oninput="calcEditLiveNet()">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label" style="color: var(--color-accent);">Thưởng thêm (+) (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-bonus" step="50000" placeholder="0" oninput="calcEditLiveNet()">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="color: var(--color-danger);">Khấu trừ / Phạt (-) (VNĐ)</label>
+                <input type="number" class="form-control" id="edit-deductions" step="10000" placeholder="0" oninput="calcEditLiveNet()">
+              </div>
             </div>
           </div>
 
           <!-- BANNER THỰC LĨNH TÍNH TỨC THÌ -->
-          <div style="background: #F0FDF4; border: 1px solid #BBF7D0; padding: 12px 16px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <span style="font-weight: 600; color: #166534;">TỔNG THỰC LĨNH DỰ KIẾN:</span>
-            <span id="edit-display-net" style="font-size: 18px; font-weight: 700; color: var(--color-accent);">0 ₫</span>
+          <div style="background: #F0FDF4; border: 1px solid #BBF7D0; padding: 14px 18px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+            <span style="font-weight: 700; color: #166534; font-size: 14px;">TỔNG THỰC LĨNH DỰ KIẾN:</span>
+            <span id="edit-display-net" style="font-size: 20px; font-weight: 800; color: var(--color-accent);">0 ₫</span>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Ghi chú bảng lương</label>
-            <input type="text" class="form-control" id="edit-note" placeholder="Ghi chú điều chỉnh...">
+          <!-- ĐÁNH GIÁ & GHI CHÚ -->
+          <div class="form-section" style="margin-bottom: 0;">
+            <div class="form-section-title">
+              <i data-lucide="message-square"></i> 5. Đánh Giá & Ghi Chú
+            </div>
+            <div class="grid-2">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="color: var(--color-primary); font-weight: 600;">Nhận xét của Giám đốc</label>
+                <input type="text" class="form-control" id="edit-director-review" placeholder="Đánh giá, nhận xét tình hình công tác...">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Ghi chú bảng lương</label>
+                <input type="text" class="form-control" id="edit-note" placeholder="Ghi chú điều chỉnh...">
+              </div>
+            </div>
           </div>
         </form>
       </div>
@@ -311,89 +397,145 @@
   <!-- MODAL 2: THÊM GIÁO VIÊN VÀO BẢNG LƯƠNG THÁNG -->
   <!-- ========================================================================= -->
   <div class="modal-overlay" id="add-payroll-modal">
-    <div class="modal-dialog" style="max-width: 600px;">
+    <div class="modal-dialog modal-lg">
       <div class="modal-header">
         <div class="modal-title">Thêm Giáo Viên Vào Bảng Lương Tháng</div>
         <button class="modal-close" onclick="closeAddPayrollModal()">&times;</button>
       </div>
       <div class="modal-body">
         <form id="add-payroll-form">
-          <div class="form-group">
-            <label class="form-label">Chọn Giáo Viên <span style="color: red;">*</span></label>
-            <select class="form-control" id="add-emp-select" onchange="onSelectAddEmployee(this.value)">
-              <option value="">-- Chọn giáo viên trong chi nhánh --</option>
-            </select>
+          <div class="form-section">
+            <div class="form-section-title">
+              <i data-lucide="user-check"></i> 1. Chọn Giáo Viên
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <select class="form-control" id="add-emp-select" onchange="onSelectAddEmployee(this.value)" style="font-weight: 600;">
+                <option value="">-- Chọn giáo viên trong chi nhánh --</option>
+              </select>
+            </div>
           </div>
 
           <div id="add-fields-fixed" style="display: none;">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Lương cơ bản (VNĐ)</label>
-                <input type="number" class="form-control" id="add-f-base-salary" placeholder="5500000" oninput="calcAddLive()">
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="calendar"></i> 2. Định Mức Lương & Ngày Công
               </div>
-              <div class="form-group">
-                <label class="form-label">Số ngày công X (ngày)</label>
-                <input type="number" class="form-control" id="add-f-days-x" step="0.5" value="26" oninput="calcAddLive()">
+              <div class="grid-3">
+                <div class="form-group">
+                  <label class="form-label">Lương cơ bản (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-f-base-salary" placeholder="5500000" oninput="calcAddLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ngày chuẩn (ngày)</label>
+                  <input type="number" class="form-control" id="add-f-std-days" step="0.5" value="26" oninput="calcAddLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Số ngày công X (ngày)</label>
+                  <input type="number" class="form-control" id="add-f-days-x" step="0.5" value="26" oninput="calcAddLive()">
+                </div>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Tiền tăng ca (VNĐ)</label>
-                <input type="number" class="form-control" id="add-f-ot-pay" value="0" oninput="calcAddLive()">
+
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="gift"></i> 3. Phụ Cấp & Thưởng
               </div>
-              <div class="form-group">
-                <label class="form-label">Phụ cấp Bán trú (VNĐ)</label>
-                <input type="number" class="form-control" id="add-f-boarding-pay" value="0" oninput="calcAddLive()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Chuyên cần (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-f-att-pay" value="0" oninput="calcAddLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Thưởng đi lại (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-f-travel-pay" value="0" oninput="calcAddLive()">
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Chuyên cần (VNĐ)</label>
-                <input type="number" class="form-control" id="add-f-att-pay" value="0" oninput="calcAddLive()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Phụ cấp Bán trú (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-f-boarding-pay" value="0" oninput="calcAddLive()">
+                </div>
+                <div></div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Số ca tăng ca (ca)</label>
+                  <input type="number" class="form-control" id="add-f-ot-hours" step="0.5" value="0" oninput="calcAddOtLive()">
+                  <span class="form-hint">Quy chuẩn: 1 ca = 1.5h (90 phút)</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tiền tăng ca (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-f-ot-pay" value="0" oninput="calcAddLive()">
+                </div>
               </div>
             </div>
           </div>
 
           <div id="add-fields-hourly" style="display: none;">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Tổng ca dạy (ca)</label>
-                <input type="number" class="form-control" id="add-h-slots" step="0.5" placeholder="0" oninput="calcAddLive()">
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="clock"></i> 2. Ca Dạy & Bán Trú
               </div>
-              <div class="form-group">
-                <label class="form-label">Đơn giá / ca (VNĐ)</label>
-                <input type="number" class="form-control" id="add-h-rate" value="120000" oninput="calcAddLive()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Tổng ca dạy (ca 90p)</label>
+                  <input type="number" class="form-control" id="add-h-slots" step="0.5" placeholder="0" oninput="calcAddLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Đơn giá / ca (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-h-rate" value="120000" oninput="calcAddLive()">
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Số buổi bán trú (buổi)</label>
+                  <input type="number" class="form-control" id="add-h-boarding-days" value="0" oninput="calcAddLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phụ cấp bán trú (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-h-boarding-pay" value="0" oninput="calcAddLive()">
+                </div>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Số buổi bán trú (buổi)</label>
-                <input type="number" class="form-control" id="add-h-boarding-days" value="0" oninput="calcAddLive()">
+          </div>
+
+          <div id="add-fields-common" style="display: none;">
+            <div class="form-section">
+              <div class="form-section-title">
+                <i data-lucide="sliders"></i> 4. Điều Chỉnh Thưởng & Phạt
               </div>
-              <div class="form-group">
-                <label class="form-label">Phụ cấp bán trú (VNĐ)</label>
-                <input type="number" class="form-control" id="add-h-boarding-pay" value="0" oninput="calcAddLive()">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label" style="color: var(--color-accent);">Thưởng thêm (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-bonus" value="0" oninput="calcAddLive()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="color: var(--color-danger);">Khấu trừ (VNĐ)</label>
+                  <input type="number" class="form-control" id="add-deductions" value="0" oninput="calcAddLive()">
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="form-row" id="add-fields-common" style="display: none;">
-            <div class="form-group">
-              <label class="form-label" style="color: var(--color-accent);">Thưởng thêm (VNĐ)</label>
-              <input type="number" class="form-control" id="add-bonus" value="0" oninput="calcAddLive()">
-            </div>
-            <div class="form-group">
-              <label class="form-label" style="color: var(--color-danger);">Khấu trừ (VNĐ)</label>
-              <input type="number" class="form-control" id="add-deductions" value="0" oninput="calcAddLive()">
-            </div>
+          <div id="add-banner-net" style="display: none; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 700; color: #166534; font-size: 14px;">THỰC LĨNH TÍNH TOÁN:</span>
+            <span id="add-display-net" style="font-size: 18px; font-weight: 800; color: var(--color-accent);">0 ₫</span>
           </div>
 
-          <div id="add-banner-net" style="display: none; background: #F0FDF4; border: 1px solid #BBF7D0; padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 12px; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 600; color: #166534;">THỰC LĨNH TÍNH TOÁN:</span>
-            <span id="add-display-net" style="font-size: 16px; font-weight: 700; color: var(--color-accent);">0 ₫</span>
-          </div>
-
-          <div class="form-group" id="add-group-note" style="display: none;">
-            <label class="form-label">Ghi chú</label>
-            <input type="text" class="form-control" id="add-note" placeholder="Ghi chú thêm...">
+          <div class="form-section" id="add-group-review" style="display: none; margin-bottom: 0;">
+            <div class="form-section-title">
+              <i data-lucide="message-square"></i> 5. Đánh Giá & Ghi Chú
+            </div>
+            <div class="grid-2">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="color: var(--color-primary); font-weight: 600;">Nhận xét của Giám đốc</label>
+                <input type="text" class="form-control" id="add-director-review" placeholder="Đánh giá, nhận xét tình hình công tác...">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Ghi chú</label>
+                <input type="text" class="form-control" id="add-note" placeholder="Ghi chú thêm...">
+              </div>
+            </div>
           </div>
         </form>
       </div>
@@ -419,7 +561,12 @@
         <form id="adjustment-form">
           <input type="hidden" id="adj-emp-id">
           <div class="form-group">
-            <label class="form-label">Tiền thưởng thêm (VNĐ)</label>
+            <label class="form-label">Thưởng Chuyên Cần (VNĐ) <span style="color:#2563EB; font-weight:normal;">— Đánh giá cuối tháng</span></label>
+            <input type="number" class="form-control" id="adj-attendance" placeholder="0" step="50000">
+            <span class="form-hint">Mức thưởng chuyên cần Giám đốc cho cuối tháng (VD: 300k, 500k, 700k...)</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tiền thưởng khác (VNĐ)</label>
             <input type="number" class="form-control" id="adj-bonus" placeholder="0">
           </div>
           <div class="form-group">
@@ -428,7 +575,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Ghi chú điều chỉnh</label>
-            <input type="text" class="form-control" id="adj-note" placeholder="Lý do thưởng, phạt đi trễ...">
+            <input type="text" class="form-control" id="adj-note" placeholder="Lý do thưởng chuyên cần, trừ vi phạm...">
           </div>
         </form>
       </div>
@@ -436,6 +583,94 @@
         <button type="button" class="btn btn-secondary" onclick="closeAdjustmentModal()">Đóng</button>
         <button type="button" class="btn btn-accent" id="btn-save-adjustment">
           <i data-lucide="check"></i> Lưu Điều Chỉnh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 4: NHẬP NHANH CHUYÊN CẦN CHO 1 GIÁO VIÊN (1-CHẠM) -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="quick-att-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title" id="quick-att-title">Cấu Hình Thưởng Chuyên Cần</div>
+        <button class="modal-close" onclick="closeQuickAttendanceModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="quick-att-emp-id">
+        <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px;">
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--color-primary); font-weight: 700;">Giáo Viên:</div>
+          <div style="font-size: 15px; font-weight: 700; color: #1E3A8A;" id="quick-att-emp-name">--</div>
+          <div style="font-size: 12px; color: var(--color-text-secondary); margin-top: 2px;" id="quick-att-month-text">Tháng 10 / 2026</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="font-weight: 700;">Mức Thưởng Chuyên Cần Tháng Này (VNĐ)</label>
+          <input type="number" class="form-control" id="quick-att-amount" placeholder="0" step="50000" style="font-size: 16px; font-weight: 700; color: #1D4ED8;">
+          <span class="form-hint">* Tiền chuyên cần là tùy tháng Giám đốc sẽ đánh giá và cho, không tính cố định.</span>
+        </div>
+
+        <!-- CÁC NÚT CHỌN NHANH 1-CHẠM -->
+        <div style="margin-top: 14px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px; display: block;">Mức gợi ý nhanh:</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAttAmount(1000000)">1.000.000 ₫</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAttAmount(700000)">700.000 ₫</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAttAmount(500000)">500.000 ₫</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAttAmount(400000)">400.000 ₫</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAttAmount(300000)">300.000 ₫</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAttAmount(0)" style="color: #BE123C;">0 ₫ (Không đạt)</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeQuickAttendanceModal()">Hủy</button>
+        <button type="button" class="btn btn-accent" onclick="saveQuickAttendance()">
+          <i data-lucide="check"></i> Lưu Chuyên Cần
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 5: CẤU HÌNH CHUYÊN CẦN HÀNG LOẠT CHO TOÀN BỘ GIÁO VIÊN TRONG THÁNG -->
+  <!-- ========================================================================= -->
+  <div class="modal-overlay" id="batch-att-modal">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div class="modal-title" id="batch-att-title">Cấu Hình Chuyên Cần Toàn Trường — Tháng 10/2026</div>
+        <button class="modal-close" onclick="closeBatchAttendanceModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: #F8FAFC; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; color: #1E293B;">
+          <i data-lucide="info" style="width: 15px; height: 15px; display: inline-block; vertical-align: -2px; color: #2563EB;"></i>
+          <strong>Đánh giá tháng:</strong> Tiền chuyên cần là tùy tháng Giám đốc sẽ cho (không để cố định). Bạn có thể nhập nhanh mức thưởng cho từng giáo viên bên dưới hoặc bấm nút gợi ý:
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-clean" style="margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">STT</th>
+                <th>Mã GV</th>
+                <th>Họ và Tên</th>
+                <th>Chức Vụ</th>
+                <th style="text-align: center;">Công X</th>
+                <th style="min-width: 170px;">Mức Thưởng Chuyên Cần (VNĐ)</th>
+                <th style="min-width: 180px;">Chọn Nhanh</th>
+              </tr>
+            </thead>
+            <tbody id="batch-att-tbody">
+              <!-- Render động bằng JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeBatchAttendanceModal()">Đóng</button>
+        <button type="button" class="btn btn-accent" onclick="saveBatchAttendance()">
+          <i data-lucide="check-check"></i> Lưu Toàn Bộ Chuyên Cần
         </button>
       </div>
     </div>

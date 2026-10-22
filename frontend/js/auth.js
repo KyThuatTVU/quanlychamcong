@@ -3,6 +3,8 @@
  */
 
 const auth = {
+  currentUser: null,
+
   // Kiểm tra phiên đăng nhập hiện tại
   async checkSession() {
     const res = await api.get('me.php');
@@ -14,9 +16,14 @@ const auth = {
       return null;
     }
 
+    this.currentUser = res.data;
     // Hiển thị thông tin người dùng lên Sidebar
     this.renderUserInfo(res.data);
     return res.data;
+  },
+
+  getUser() {
+    return this.currentUser;
   },
 
   renderUserInfo(user) {

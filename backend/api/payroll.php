@@ -67,23 +67,47 @@ switch ($method) {
 
         try {
             if ($action === 'adjust') {
-                // Điều chỉnh nhanh thưởng/khấu trừ
+                // Điều chỉnh nhanh thưởng / chuyên cần cuối tháng / khấu trừ
                 $db = Database::getConnection();
-                $stmt = $db->prepare("
-                    UPDATE monthly_payroll 
-                    SET bonus = :bonus, deductions = :deductions, note = :note,
-                        total_income = (salary_by_days + salary_by_slots + ot_pay + boarding_pay + attendance_allowance + lunch_allowance + :bonus),
-                        net_salary = GREATEST(0, (salary_by_days + salary_by_slots + ot_pay + boarding_pay + attendance_allowance + lunch_allowance + :bonus) - :deductions)
-                    WHERE employee_id = :emp_id AND month = :m AND year = :y
-                ");
-                $stmt->execute([
-                    ':bonus' => (float)($data['bonus'] ?? 0),
-                    ':deductions' => (float)($data['deductions'] ?? 0),
-                    ':note' => $data['note'] ?? '',
-                    ':emp_id' => $employeeId,
-                    ':m' => $month,
-                    ':y' => $year
-                ]);
+                $att = isset($data['attendance_allowance']) ? (float)$data['attendance_allowance'] : null;
+                $bonus = (float)($data['bonus'] ?? 0);
+                $deductions = (float)($data['deductions'] ?? 0);
+                $note = $data['note'] ?? '';
+
+                if ($att !== null) {
+                    $stmt = $db->prepare("
+                        UPDATE monthly_payroll 
+                        SET attendance_allowance = :att, bonus = :bonus, deductions = :deductions, note = :note,
+                            total_income = (salary_by_days + salary_by_slots + ot_pay + boarding_pay + :att + lunch_allowance + travel_allowance + :bonus),
+                            net_salary = GREATEST(0, (salary_by_days + salary_by_slots + ot_pay + boarding_pay + :att + lunch_allowance + travel_allowance + :bonus) - :deductions)
+                        WHERE employee_id = :emp_id AND month = :m AND year = :y
+                    ");
+                    $stmt->execute([
+                        ':att' => $att,
+                        ':bonus' => $bonus,
+                        ':deductions' => $deductions,
+                        ':note' => $note,
+                        ':emp_id' => $employeeId,
+                        ':m' => $month,
+                        ':y' => $year
+                    ]);
+                } else {
+                    $stmt = $db->prepare("
+                        UPDATE monthly_payroll 
+                        SET bonus = :bonus, deductions = :deductions, note = :note,
+                            total_income = (salary_by_days + salary_by_slots + ot_pay + boarding_pay + attendance_allowance + lunch_allowance + travel_allowance + :bonus),
+                            net_salary = GREATEST(0, (salary_by_days + salary_by_slots + ot_pay + boarding_pay + attendance_allowance + lunch_allowance + travel_allowance + :bonus) - :deductions)
+                        WHERE employee_id = :emp_id AND month = :m AND year = :y
+                    ");
+                    $stmt->execute([
+                        ':bonus' => $bonus,
+                        ':deductions' => $deductions,
+                        ':note' => $note,
+                        ':emp_id' => $employeeId,
+                        ':m' => $month,
+                        ':y' => $year
+                    ]);
+                }
                 jsonResponse('success', null, 'Đã cập nhật điều chỉnh lương thành công');
             } else {
                 // Thêm dòng tính lương thủ công

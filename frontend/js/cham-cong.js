@@ -302,8 +302,9 @@ function renderDailyFixedTable(employees) {
 
         <td>
           <input type="number" step="0.5" min="0" class="cell-input-number" id="in-othours-${emp.id}" 
-                 value="${otHoursVal > 0 ? parseFloat(otHoursVal).toFixed(2) : ''}" 
-                 placeholder="0.0" 
+                 value="${otHoursVal > 0 ? (otHoursVal / 1.5).toFixed(1).replace(/\.0$/, '') : ''}" 
+                 placeholder="0" 
+                 title="Số ca tăng ca (1 ca = 1.5h, 2 ca = 3.0h)"
                  onchange="onFixedOtHoursChange(${emp.id})"
                  style="width: 75px; text-align: center; font-weight: 700; color: var(--color-primary); background: #EFF6FF;">
         </td>
@@ -341,7 +342,7 @@ window.onFixedOtToggle = function(empId) {
   if (isOt) {
     let curVal = parseFloat(otInput.value || 0);
     if (curVal <= 0) {
-      otInput.value = '1.0';
+      otInput.value = (empId == 16) ? '2' : '1';
     }
     symSel.value = 'X + TC';
     row.classList.remove('row-unentered');
@@ -419,19 +420,15 @@ window.onFixedInputChange = function(empId) {
     document.getElementById(`txt-late-${empId}`).textContent = lateMins;
     document.getElementById(`txt-late-${empId}`).style.color = lateMins > 0 ? '#B91C1C' : 'inherit';
 
-    // Tính số giờ tăng ca nếu vượt khung giờ chuẩn
-    const stdHours = parseFloat(emp.standard_hours || 8.0);
-    const workedHours = diffMins / 60.0;
-    if (workedHours > stdHours) {
-      const autoOt = Math.round((workedHours - stdHours) * 100) / 100;
-      otInput.value = autoOt;
-      document.getElementById(`sel-ot-${empId}`).value = '1';
-      symSel.value = 'X + TC';
-    } else if (isOtSel) {
+    // NGHIỆP VỤ BẮT BUỘC: Giờ vào và giờ ra KHÔNG tự động xác định tăng ca.
+    // Nhân viên đến sớm hoặc về trễ không tự động tính tăng ca.
+    // Tăng ca chỉ được tính khi người quản lý chủ động xác nhận (chọn Có tăng ca hoặc nhập số ca/giờ).
+    if (isOtSel) {
       let curOt = parseFloat(otInput.value || 0);
-      if (curOt <= 0) otInput.value = '1.0';
+      if (curOt <= 0) otInput.value = (empId == 16) ? '2' : '1';
       symSel.value = 'X + TC';
     } else {
+      otInput.value = '';
       symSel.value = 'X';
     }
 
@@ -484,7 +481,7 @@ function renderDailyHourlyTable(employees) {
 
     const totMins = att.total_minutes || 0;
     const totSlots = att.total_slots || 0;
-    const actualSlots = att.actual_slots !== undefined && att.actual_slots !== null ? att.actual_slots : totSlots;
+    const actualSlots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') ? att.actual_slots : '';
     const note = att.notes || '';
 
     const isEntered = Boolean(sin || sout || cin || cout || tin || tout || totMins > 0);
@@ -536,11 +533,11 @@ function renderDailyHourlyTable(employees) {
                  placeholder="Ghi chú ca..." style="padding: 4px 8px; font-size: 11.5px;" onchange="saveSingleDailyHourly(${emp.id})">
         </td>
 
-        <!-- 👉 SỐ CA THỰC TẾ (CỐ ĐỊNH THEO Ý NGƯỜI DÙNG) -->
+        <!-- 👉 SỐ CA THỰC TẾ (CHỈ TÍNH LƯƠNG KHI NGƯỜI QUẢN LÝ XÁC NHẬN VÀO ĐÂY) -->
         <td style="background: #ECFEFF !important;">
           <input type="number" step="0.5" class="cell-input-number" id="h-actslots-${emp.id}" 
-                 value="${actualSlots > 0 ? parseFloat(actualSlots).toFixed(1) : ''}" 
-                 placeholder="0.0" title="Nếu nhiều ca quá thì điền cố định số ca thực tế vào đây" 
+                 value="${actualSlots !== '' ? parseFloat(actualSlots).toFixed(1).replace(/\.0$/, '') : ''}" 
+                 placeholder="0.0" title="Nhập số ca thực tế được tính lương do người quản lý xác nhận" 
                  onchange="saveSingleDailyHourly(${emp.id})">
         </td>
       </tr>
@@ -588,10 +585,8 @@ window.onHourlyInputChange = function(empId) {
   if (totMins > 0 || hasBt) {
     row.classList.remove('row-unentered');
     document.getElementById(`txt-hconfirm-${empId}`).innerHTML = `<span class="badge-excel-confirmed">Đã xác nhận</span>`;
-    // Nếu ô số ca thực tế chưa có người điền, tự động điền theo tổng ca
-    if (!actInput.value && totSlots > 0) {
-      actInput.value = totSlots.toFixed(1);
-    }
+    // NGHIỆP VỤ BẮT BUỘC: Tuyệt đối không tự động gán actInput.value từ totSlots!
+    // Số ca thực tế được tính lương do người quản lý trực tiếp nhập hoặc xác nhận.
   } else {
     row.classList.add('row-unentered');
     document.getElementById(`txt-hconfirm-${empId}`).innerHTML = `<span class="badge-excel-unentered">Chưa nhập</span>`;
@@ -608,14 +603,15 @@ async function saveSingleDailyFixed(empId) {
   const otVal = document.getElementById(`in-othours-${empId}`)?.value;
   const sym = document.getElementById(`sel-sym-${empId}`).value;
 
-  const otHours = otVal !== '' && otVal !== null ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
+  const otSlots = otVal !== '' && otVal !== null ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
+  const otHours = otSlots * 1.5;
 
   const payload = {
     employee_id: empId,
     work_date: currentWorkDate,
     time_in: tin || null,
     time_out: tout || null,
-    is_overtime: (isOt || otHours > 0) ? 1 : 0,
+    is_overtime: (isOt || otSlots > 0) ? 1 : 0,
     ot_hours: otHours,
     work_symbol: sym
   };
@@ -636,7 +632,8 @@ async function saveSingleDailyHourly(empId) {
   const tout = normalizeTime24(document.getElementById(`h-tout-${empId}`).value);
   const hasBt = parseInt(document.getElementById(`h-bt-${empId}`)?.value || '0');
   const note = document.getElementById(`h-note-${empId}`).value.trim();
-  const actVal = document.getElementById(`h-actslots-${empId}`).value;
+  const actVal = document.getElementById(`h-actslots-${empId}`)?.value.trim();
+  const actSlots = (actVal !== '' && actVal !== null && !isNaN(parseFloat(actVal))) ? parseFloat(actVal) : null;
 
   const payload = {
     employee_id: empId,
@@ -649,7 +646,7 @@ async function saveSingleDailyHourly(empId) {
     evening_out: tout || null,
     has_boarding: hasBt,
     notes: note,
-    actual_slots: actVal !== '' ? parseFloat(actVal) : null
+    actual_slots: actSlots
   };
 
   const res = await api.post('attendance.php', payload);
@@ -670,13 +667,14 @@ async function saveAllDailyRecords() {
       const isOt = parseInt(document.getElementById(`sel-ot-${emp.id}`)?.value || '0');
       const otVal = document.getElementById(`in-othours-${emp.id}`)?.value;
       const sym = document.getElementById(`sel-sym-${emp.id}`)?.value || '-';
-      const otHours = otVal !== '' && otVal !== null ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
+      const otSlots = otVal !== '' && otVal !== null ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
+      const otHours = otSlots * 1.5;
       batch.push({
         employee_id: emp.id,
         work_date: currentWorkDate,
         time_in: tin || null,
         time_out: tout || null,
-        is_overtime: (isOt || otHours > 0) ? 1 : 0,
+        is_overtime: (isOt || otSlots > 0) ? 1 : 0,
         ot_hours: otHours,
         work_symbol: sym
       });
@@ -691,7 +689,8 @@ async function saveAllDailyRecords() {
       const tout = normalizeTime24(document.getElementById(`h-tout-${emp.id}`)?.value);
       const hasBt = parseInt(document.getElementById(`h-bt-${emp.id}`)?.value || '0');
       const note = document.getElementById(`h-note-${emp.id}`)?.value.trim();
-      const actVal = document.getElementById(`h-actslots-${emp.id}`)?.value;
+      const actVal = document.getElementById(`h-actslots-${emp.id}`)?.value.trim();
+      const actSlots = (actVal !== '' && actVal !== null && !isNaN(parseFloat(actVal))) ? parseFloat(actVal) : null;
       batch.push({
         employee_id: emp.id,
         work_date: currentWorkDate,
@@ -703,7 +702,7 @@ async function saveAllDailyRecords() {
         evening_out: tout || null,
         has_boarding: hasBt,
         notes: note,
-        actual_slots: actVal !== '' ? parseFloat(actVal) : null
+        actual_slots: actSlots
       });
     });
   }
@@ -765,7 +764,7 @@ function renderMatrixTable(data) {
   }
 
   if (currentSalaryType === 'FIXED') {
-    headerHtml += `<th>Công (X)</th><th>Giờ TC</th><th>Trễ (p)</th></tr>`;
+    headerHtml += `<th>Công (X)</th><th>Số ca TC</th><th>Trễ (p)</th></tr>`;
   } else {
     headerHtml += `<th>Tổng ca</th><th>Bán trú</th></tr>`;
   }
@@ -810,7 +809,8 @@ function renderMatrixTable(data) {
         }
       } else {
         if (att) {
-          const slots = parseFloat(att.actual_slots || att.total_slots || 0);
+          // CHỈ TÍNH THEO SỐ CA THỰC TẾ ĐƯỢC XÁC NHẬN (actual_slots)
+          const slots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') ? parseFloat(att.actual_slots) : 0;
           const hasBt = parseInt(att.has_boarding || 0) === 1;
           if (slots > 0 && hasBt) {
             cellText = `${slots}+BT`;
@@ -838,7 +838,7 @@ function renderMatrixTable(data) {
     if (currentSalaryType === 'FIXED') {
       summaryCols = `
         <td style="font-weight: 700; color: var(--color-accent);">${rowXCount}</td>
-        <td style="font-weight: 700; color: var(--color-primary);">${rowOtHours > 0 ? rowOtHours + 'h' : '-'}</td>
+        <td style="font-weight: 700; color: var(--color-primary);">${rowOtHours > 0 ? (rowOtHours / 1.5) + ' ca' : '-'}</td>
         <td style="font-weight: 600; color: ${rowLateMins > 0 ? '#B91C1C' : 'inherit'};">${rowLateMins > 0 ? rowLateMins + 'p' : '-'}</td>
       `;
     } else {

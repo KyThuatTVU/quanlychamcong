@@ -150,34 +150,34 @@ class Attendance {
                 $workedHours = ($secOut - $secIn) / 3600.0;
             }
 
-            // Ưu tiên số giờ tăng ca do người dùng nhập hoặc sửa (Quy định: tăng ca là 1.50h, tối đa 1.50h)
-            if (isset($data['ot_hours']) && $data['ot_hours'] !== '' && $data['ot_hours'] !== null) {
-                $otHours = min(1.50, round((float)$data['ot_hours'], 2));
-                if ($otHours > 0) {
-                    $isOt = 1;
+            // NGHIỆP VỤ BẮT BUỘC: Không tự động xác định tăng ca chỉ từ giờ vào/ra hay làm quá giờ chuẩn.
+            // Chỉ tính tăng ca khi người quản lý chủ động xác nhận ($isOt = 1) hoặc nhập số ca/giờ tăng ca.
+            if ($isOt) {
+                if (isset($data['ot_hours']) && $data['ot_hours'] !== '' && $data['ot_hours'] !== null && (float)$data['ot_hours'] > 0) {
+                    $otHours = round((float)$data['ot_hours'], 2);
+                } else {
+                    $otHours = 1.50; // Mặc định 1 ca = 1.50h khi bật Có tăng ca
                 }
-            } else if ($workedHours > $stdHours) {
-                $otHours = min(1.50, round($workedHours - $stdHours, 2));
-                $isOt = 1;
-            } else if ($isOt) {
-                $otHours = 1.50;
+            } else {
+                $otHours = 0.0;
+                $isOt = 0;
             }
 
-            if ($otHours > 1.50) {
-                $otHours = 1.50;
-            }
-
-            if ($isOt || $otHours > 0) {
+            if ($isOt && $otHours > 0) {
                 if ($workSymbol === '-' || empty($workSymbol) || $workSymbol === 'X') {
                     $workSymbol = 'X + TC';
                 }
-            } else if ($timeIn && $timeOut && ($workSymbol === '-' || empty($workSymbol))) {
-                $workSymbol = 'X';
+            } else {
+                if ($workSymbol === 'X + TC' || $workSymbol === 'X+TC') {
+                    $workSymbol = ($timeIn && $timeOut) ? 'X' : '-';
+                } else if ($timeIn && $timeOut && ($workSymbol === '-' || empty($workSymbol))) {
+                    $workSymbol = 'X';
+                }
             }
 
             $salarySymbol = in_array($workSymbol, ['X', 'X + TC', 'P', 'K']) ? $workSymbol : '-';
             $otSalaryHours = ($isOt && $otHours > 0) ? $otHours : 0.0;
-            $confirmStatus = ($timeIn && $timeOut || $otHours > 0 || $workSymbol !== '-') ? 'Đã xác nhận' : 'Chưa nhập';
+            $confirmStatus = ($timeIn && $timeOut || ($isOt && $otHours > 0) || $workSymbol !== '-') ? 'Đã xác nhận' : 'Chưa nhập';
 
             $sql = "INSERT INTO daily_attendance (
                 employee_id, work_date, time_in, time_out, late_minutes, is_overtime,
@@ -213,6 +213,9 @@ class Attendance {
                 ':notes' => $notes
             ]);
 
+            // Tự động đồng bộ ngay sang bảng tổng hợp lương tháng
+            $this->syncMonthlyPayroll($employeeId, $workDate);
+
             return [
                 'employee_id' => $employeeId,
                 'work_date' => $workDate,
@@ -245,10 +248,13 @@ class Attendance {
             $eMins = $calcMins($eIn, $eOut);
             $totMins = $mMins + $aMins + $eMins;
 
-            // Quy đổi số ca (90 phút = 1 ca)
+            // Quy đổi số ca theo 90 phút (Chỉ là thời gian hiện diện tham khảo, KHÔNG tự quyết định ca tính lương)
             $totSlots = round($totMins / 90.0, 2);
-            $actualSlots = isset($data['actual_slots']) ? (float)$data['actual_slots'] : $totSlots;
-            $confirmStatus = ($totMins > 0 || $hasBoarding) ? 'Đã xác nhận' : 'Chưa nhập';
+            // SỐ CA THỰC TẾ ĐƯỢC TÍNH LƯƠNG: Căn cứ vào số ca thực tế do người quản lý xác nhận
+            $actualSlots = (isset($data['actual_slots']) && $data['actual_slots'] !== '' && $data['actual_slots'] !== null)
+                ? (float)$data['actual_slots']
+                : null;
+            $confirmStatus = ($totMins > 0 || $hasBoarding || $actualSlots !== null) ? 'Đã xác nhận' : 'Chưa nhập';
 
             $sql = "INSERT INTO daily_attendance (
                 employee_id, work_date, morning_in, morning_out, morning_minutes,
@@ -296,6 +302,9 @@ class Attendance {
                 ':notes' => $notes
             ]);
 
+            // Tự động đồng bộ ngay sang bảng tổng hợp lương tháng
+            $this->syncMonthlyPayroll($employeeId, $workDate);
+
             return [
                 'employee_id' => $employeeId,
                 'work_date' => $workDate,
@@ -305,6 +314,220 @@ class Attendance {
                 'actual_slots' => $actualSlots,
                 'status' => $confirmStatus
             ];
+        }
+    }
+
+    /**
+     * Đồng bộ tức thì chấm công tháng của nhân viên sang bảng monthly_payroll
+     * Đảm bảo Tổng ca được tính chính xác từ số ca thực tế đã xác nhận (actual_slots)
+     */
+    public function syncMonthlyPayroll(int $employeeId, string $workDate): void {
+        try {
+            $month = (int)date('n', strtotime($workDate));
+            $year = (int)date('Y', strtotime($workDate));
+            $startDate = sprintf('%04d-%02d-01', $year, $month);
+            $daysInMonth = (int)date('t', strtotime($startDate));
+            $endDate = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
+
+            $empModel = new Employee();
+            $emp = $empModel->getById($employeeId);
+            if (!$emp) return;
+
+            $branchId = (int)$emp['branch_id'];
+            $salaryType = $emp['salary_type'];
+
+            // Lấy config chi nhánh
+            $cfgStmt = $this->db->prepare("SELECT * FROM system_config WHERE branch_id = :branch_id LIMIT 1");
+            $cfgStmt->execute([':branch_id' => $branchId]);
+            $config = $cfgStmt->fetch() ?: [
+                'standard_work_days' => 26,
+                'lunch_allowance' => 25000,
+                'default_ot_rate' => 120000,
+                'default_slot_rate' => 120000
+            ];
+            $branchStdDays = (float)($config['standard_work_days'] ?: 26);
+            $lunchRate = (float)($config['lunch_allowance'] ?: 25000);
+
+            // Lấy điều chỉnh nếu đã lưu trước đó trong monthly_payroll
+            $prevStmt = $this->db->prepare("SELECT bonus, deductions, note, director_review, attendance_allowance FROM monthly_payroll WHERE employee_id = :emp_id AND month = :m AND year = :y");
+            $prevStmt->execute([':emp_id' => $employeeId, ':m' => $month, ':y' => $year]);
+            $prevPayroll = $prevStmt->fetch() ?: ['bonus' => 0, 'deductions' => 0, 'note' => '', 'director_review' => '', 'attendance_allowance' => null];
+
+            $bonus = (float)($prevPayroll['bonus'] ?? 0);
+            $deductions = (float)($prevPayroll['deductions'] ?? 0);
+            $note = $prevPayroll['note'] ?? '';
+            $directorReview = $prevPayroll['director_review'] ?? ($emp['notes'] ?? '');
+            $attAllowance = (isset($prevPayroll['attendance_allowance']) && $prevPayroll['attendance_allowance'] !== null && (float)$prevPayroll['attendance_allowance'] > 0)
+                ? (float)$prevPayroll['attendance_allowance']
+                : (float)($emp['attendance_allowance'] ?? 0.0);
+
+            if ($salaryType === 'HOURLY') {
+                // TÍNH TỔNG CA THỰC TẾ ĐƯỢC XÁC NHẬN (chỉ lấy actual_slots, không tính từ giờ vào/ra)
+                $aggStmt = $this->db->prepare("
+                    SELECT 
+                        COALESCE(SUM(actual_slots), 0) as tot_slots,
+                        SUM(CASE WHEN has_boarding = 1 THEN 1 ELSE 0 END) as tot_bt
+                    FROM daily_attendance
+                    WHERE employee_id = :emp_id AND work_date BETWEEN :start AND :end
+                ");
+                $aggStmt->execute([':emp_id' => $employeeId, ':start' => $startDate, ':end' => $endDate]);
+                $agg = $aggStmt->fetch();
+
+                $totalSlots = (float)($agg['tot_slots'] ?? 0);
+                $boardingDays = (int)($agg['tot_bt'] ?? 0);
+
+                $slotRate = (float)($emp['hourly_rate'] ?: ($config['default_slot_rate'] ?? 120000));
+                $boardRate = (float)($emp['boarding_allowance'] ?? 0);
+                $travelAllowance = (float)($emp['travel_allowance'] ?? 0);
+
+                $salaryBySlots = round($totalSlots * $slotRate);
+                $boardPay = round($boardingDays * $boardRate);
+                $totalIncome = $salaryBySlots + $boardPay + $attAllowance + $travelAllowance + $bonus;
+                $netSalary = max(0, $totalIncome - $deductions);
+
+                $saveSql = "INSERT INTO monthly_payroll (
+                    employee_id, month, year, total_days_x, total_ot_hours, ot_count,
+                    total_slots, total_boarding_days, late_count, total_late_minutes,
+                    standard_work_days, base_salary, salary_by_days, daily_salary_rate, salary_by_slots, ot_pay, boarding_pay,
+                    attendance_allowance, lunch_allowance, travel_allowance, bonus, total_income, deductions, net_salary, note, director_review
+                ) VALUES (
+                    :employee_id, :month, :year, 0, 0, 0,
+                    :total_slots, :total_boarding_days, 0, 0,
+                    26.0, 0, 0, 0, :salary_by_slots, 0, :boarding_pay,
+                    :attendance_allowance, 0, :travel_allowance, :bonus, :total_income, :deductions, :net_salary, :note, :director_review
+                ) ON DUPLICATE KEY UPDATE
+                    total_slots = VALUES(total_slots),
+                    total_boarding_days = VALUES(total_boarding_days),
+                    salary_by_slots = VALUES(salary_by_slots),
+                    boarding_pay = VALUES(boarding_pay),
+                    total_income = VALUES(total_income),
+                    net_salary = VALUES(net_salary)";
+
+                $stmt = $this->db->prepare($saveSql);
+                $stmt->execute([
+                    ':employee_id' => $employeeId,
+                    ':month' => $month,
+                    ':year' => $year,
+                    ':total_slots' => $totalSlots,
+                    ':total_boarding_days' => $boardingDays,
+                    ':salary_by_slots' => $salaryBySlots,
+                    ':boarding_pay' => $boardPay,
+                    ':attendance_allowance' => $attAllowance,
+                    ':travel_allowance' => $travelAllowance,
+                    ':bonus' => $bonus,
+                    ':total_income' => $totalIncome,
+                    ':deductions' => $deductions,
+                    ':net_salary' => $netSalary,
+                    ':note' => $note,
+                    ':director_review' => $directorReview
+                ]);
+            } else {
+                // TÍNH LƯƠNG CỨNG (Tăng ca chỉ tính khi được xác nhận)
+                $attRows = $this->db->prepare("
+                    SELECT work_symbol, salary_symbol, is_overtime, ot_hours, ot_salary_hours, late_minutes
+                    FROM daily_attendance
+                    WHERE employee_id = :emp_id AND work_date BETWEEN :start AND :end
+                ");
+                $attRows->execute([':emp_id' => $employeeId, ':start' => $startDate, ':end' => $endDate]);
+                $list = $attRows->fetchAll();
+
+                $totalDaysX = 0.0;
+                $totalOtHours = 0.0;
+                $otCount = 0;
+                $lateCount = 0;
+                $totalLateMinutes = 0;
+
+                foreach ($list as $a) {
+                    $sym = trim($a['salary_symbol'] ?? $a['work_symbol']);
+                    if (in_array($sym, ['X', 'X + TC', 'X+TC'])) {
+                        $totalDaysX += 1.0;
+                    }
+                    $isRowOt = in_array($sym, ['X + TC', 'X+TC']) || (!empty($a['is_overtime']) && !in_array($sym, ['P', 'K', 'Thiếu', '-']));
+                    if ($isRowOt) {
+                        $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
+                        if ($otH <= 0) $otH = 1.50;
+                        $slotsInDay = round($otH / 1.5, 1);
+                        if ($slotsInDay < 1) $slotsInDay = 1.0;
+                        $otCount += $slotsInDay;
+                        $totalOtHours += $otH;
+                    }
+                    $lateM = (int)($a['late_minutes'] ?? 0);
+                    if ($lateM > 0) {
+                        $lateCount++;
+                        $totalLateMinutes += $lateM;
+                    }
+                }
+
+                $baseSalary = (float)$emp['base_salary'];
+                $empStdDays = !empty($emp['standard_work_days']) ? (float)$emp['standard_work_days'] : $branchStdDays;
+                if ($empStdDays <= 0) $empStdDays = 26.0;
+
+                $dailySalaryRate = round($baseSalary / $empStdDays, 2);
+                $salaryByDays = ($totalDaysX == $empStdDays) ? $baseSalary : round(($baseSalary / $empStdDays) * $totalDaysX);
+
+                $otRate = (float)($emp['overtime_rate'] ?: ($config['default_ot_rate'] ?? 120000));
+                $otPay = round($otCount * $otRate);
+
+                $hasLunch = !isset($emp['has_lunch_allowance']) || $emp['has_lunch_allowance'] == 1;
+                $lunchPay = $hasLunch ? round($totalDaysX * $lunchRate) : 0;
+
+                $travelAllowance = (float)($emp['travel_allowance'] ?? 0);
+                $boardPay = (float)($emp['boarding_allowance'] ?? 0);
+
+                $totalIncome = $salaryByDays + $otPay + $boardPay + $attAllowance + $lunchPay + $travelAllowance + $bonus;
+                $netSalary = max(0, $totalIncome - $deductions);
+
+                $saveSql = "INSERT INTO monthly_payroll (
+                    employee_id, month, year, total_days_x, total_ot_hours, ot_count,
+                    total_slots, total_boarding_days, late_count, total_late_minutes,
+                    standard_work_days, base_salary, salary_by_days, daily_salary_rate, salary_by_slots, ot_pay, boarding_pay,
+                    attendance_allowance, lunch_allowance, travel_allowance, bonus, total_income, deductions, net_salary, note, director_review
+                ) VALUES (
+                    :employee_id, :month, :year, :total_days_x, :total_ot_hours, :ot_count,
+                    0, 0, :late_count, :total_late_minutes,
+                    :standard_work_days, :base_salary, :salary_by_days, :daily_salary_rate, 0, :ot_pay, :boarding_pay,
+                    :attendance_allowance, :lunch_allowance, :travel_allowance, :bonus, :total_income, :deductions, :net_salary, :note, :director_review
+                ) ON DUPLICATE KEY UPDATE
+                    total_days_x = VALUES(total_days_x),
+                    total_ot_hours = VALUES(total_ot_hours),
+                    ot_count = VALUES(ot_count),
+                    late_count = VALUES(late_count),
+                    total_late_minutes = VALUES(total_late_minutes),
+                    salary_by_days = VALUES(salary_by_days),
+                    ot_pay = VALUES(ot_pay),
+                    lunch_allowance = VALUES(lunch_allowance),
+                    total_income = VALUES(total_income),
+                    net_salary = VALUES(net_salary)";
+
+                $stmt = $this->db->prepare($saveSql);
+                $stmt->execute([
+                    ':employee_id' => $employeeId,
+                    ':month' => $month,
+                    ':year' => $year,
+                    ':total_days_x' => $totalDaysX,
+                    ':total_ot_hours' => $totalOtHours,
+                    ':ot_count' => $otCount,
+                    ':late_count' => $lateCount,
+                    ':total_late_minutes' => $totalLateMinutes,
+                    ':standard_work_days' => $empStdDays,
+                    ':base_salary' => $baseSalary,
+                    ':salary_by_days' => $salaryByDays,
+                    ':daily_salary_rate' => $dailySalaryRate,
+                    ':ot_pay' => $otPay,
+                    ':boarding_pay' => $boardPay,
+                    ':attendance_allowance' => $attAllowance,
+                    ':lunch_allowance' => $lunchPay,
+                    ':travel_allowance' => $travelAllowance,
+                    ':bonus' => $bonus,
+                    ':total_income' => $totalIncome,
+                    ':deductions' => $deductions,
+                    ':net_salary' => $netSalary,
+                    ':note' => $note,
+                    ':director_review' => $directorReview
+                ]);
+            }
+        } catch (Throwable $e) {
+            error_log("Error in syncMonthlyPayroll: " . $e->getMessage());
         }
     }
 }

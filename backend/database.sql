@@ -194,7 +194,7 @@ INSERT INTO `employees` (`branch_id`, `employee_code`, `full_name`, `position`, 
 
 -- C. CƠ SỞ TÂN NHỰT - LƯƠNG CỨNG
 INSERT INTO `employees` (`branch_id`, `employee_code`, `full_name`, `position`, `phone`, `salary_type`, `base_salary`, `hourly_rate`, `overtime_rate`, `attendance_allowance`, `boarding_allowance`, `time_frame`, `standard_hours`, `default_time_in`, `default_time_out`) VALUES
-(2, 'GV001', 'Cô Hiền', 'Giáo viên Bán Trú & Ca Tối', '0912345678', 'FIXED', 6000000, 120000, 120000, 1000000, 0, '17:30 - 19:00 (1,5h)', 1.50, '17:30:00', '19:00:00'),
+(2, 'GV001', 'Cô Hiền', 'Giáo viên Bán Trú & Ca Tối', '0912345678', 'FIXED', 6000000, 120000, 100000, 1000000, 0, '17:00 - 20:00 (3h = 2 ca)', 3.00, '17:00:00', '20:00:00'),
 (2, 'GV002', 'Cô My', 'Giáo viên Bán Trú', '0987654321', 'FIXED', 7000000, 0, 120000, 300000, 500000, '06:30 - 17:00 (8h30)', 8.50, '08:30:00', '17:00:00');
 
 -- D. CƠ SỞ TÂN NHỰT - LƯƠNG THEO GIỜ

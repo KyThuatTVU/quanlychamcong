@@ -3,310 +3,1089 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phiếu Lương Cá Nhân — HappyKids HRM</title>
+  <title>Lương Chi Tiết Giáo Viên — HappyKids HRM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@500;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="icon" type="image/png" href="../assets/logo.png">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/print.css">
   <style>
-    body {
-      background: var(--color-background);
+    /* KHUNG CHỨA TOÀN TRANG */
+    .slip-view-wrapper {
       display: flex;
-      justify-content: center;
-      padding: 30px 16px;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0 40px;
     }
-    .payslip-container {
+
+    /* THANH CÔNG CỤ CHỌN NHANH */
+    .slip-toolbar-card {
       width: 100%;
-      max-width: 780px;
-      background: #fff;
+      max-width: 540px;
+      background: #FFFFFF;
       border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: 40px;
-      box-shadow: var(--shadow-card);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
-    .school-header {
+
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .emp-nav-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    /* KHUNG PHIẾU LƯƠNG CHUẨN FORM EXCEL */
+    .excel-payslip-wrapper {
+      width: 100%;
+      max-width: 540px;
+      background: #FFFFFF;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    /* BẢNG PHIẾU LƯƠNG CHUẨN EXCEL 2 CỘT */
+    .excel-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'Segoe UI', 'Be Vietnam Pro', Arial, sans-serif;
+    }
+
+    .excel-header-cell {
+      background: #174375; /* Xanh Navy chuẩn Excel trung tâm */
+      color: #FFFFFF;
       text-align: center;
-      border-bottom: 2px solid var(--color-secondary);
-      padding-bottom: 20px;
-      margin-bottom: 24px;
+      padding: 14px 16px;
+      border: 1px solid #174375;
     }
-    .school-header h2 {
-      font-size: 19px;
-      font-weight: 700;
-      color: var(--color-secondary);
-      margin-bottom: 4px;
-    }
-    .school-header p {
-      font-size: 13px;
-      color: var(--color-text-secondary);
-    }
-    .voucher-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--color-primary);
-      margin-top: 14px;
-      text-transform: uppercase;
+    .excel-header-title {
+      font-size: 15px;
+      font-weight: 800;
       letter-spacing: 0.5px;
+      text-transform: uppercase;
+      line-height: 1.35;
     }
-    .info-grid {
+    .excel-header-branch {
+      font-size: 13.5px;
+      font-weight: 700;
+      margin-top: 3px;
+      text-transform: uppercase;
+      color: #E2E8F0;
+    }
+
+    /* CÁC HÀNG VÀ Ô */
+    .excel-table tr td {
+      border: 1px solid #CBD5E1;
+      padding: 7.5px 14px;
+      font-size: 13.5px;
+      line-height: 1.4;
+    }
+
+    /* Cột tiêu đề trái */
+    .excel-col-label {
+      width: 38%;
+      background: #E8EFF7;
+      color: #1E293B;
+      font-weight: 500;
+      vertical-align: middle;
+    }
+
+    /* Cột giá trị phải */
+    .excel-col-val {
+      width: 62%;
+      background: #FFFFFF;
+      color: #0F172A;
+      text-align: right;
+      vertical-align: middle;
+      font-weight: 500;
+    }
+
+    .excel-spacer-row td {
+      height: 8px;
+      background: #F8FAFC;
+      border-left: 1px solid #CBD5E1;
+      border-right: 1px solid #CBD5E1;
+      padding: 0;
+    }
+
+    /* Ô input điền tổng số tiền trên phiếu lương */
+    .slip-cell-input {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      text-align: right;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #0F172A;
+      padding: 2px 4px;
+      border-radius: 3px;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    .slip-cell-input:hover {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+    }
+    .slip-cell-input:focus {
+      background: #FFFFFF;
+      border-color: #2563EB;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    .slip-cell-input.highlight-cc {
+      color: #1D4ED8;
+      font-weight: 700;
+    }
+
+    /* Hàng Tổng Thu */
+    .row-total-income .excel-col-label {
+      font-weight: 700;
+      color: #0F172A;
+      background: #DEEAF6;
+    }
+    .row-total-income .excel-col-val {
+      font-weight: 700;
+      font-size: 14.5px;
+      background: #DEEAF6;
+    }
+
+    /* Hàng Thực Lĩnh viền xanh lá chuẩn Excel */
+    .row-net-salary .excel-col-label {
+      font-weight: 800;
+      font-size: 14px;
+      color: #0F172A;
+      background: #E8EFF7;
+      border: 2px solid #10B981;
+      border-right: 1px solid #CBD5E1;
+    }
+    .row-net-salary .excel-col-val {
+      font-weight: 800;
+      font-size: 16px;
+      color: #0F172A;
+      background: #FFFFFF;
+      border: 2px solid #10B981;
+      border-left: 1px solid #CBD5E1;
+    }
+
+    /* Hàng Nhận Xét */
+    .row-review .excel-col-label {
+      text-align: center;
+      vertical-align: middle;
+      font-weight: 500;
+      background: #E8EFF7;
+    }
+    .row-review .excel-col-val {
+      text-align: left;
+      font-size: 13px;
+      color: #334155;
+      padding: 10px 14px;
+    }
+    .review-textarea {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      font-family: inherit;
+      font-size: 13px;
+      color: #1E293B;
+      resize: vertical;
+      min-height: 52px;
+      line-height: 1.45;
+      outline: none;
+      border-radius: 3px;
+      padding: 4px;
+    }
+    .review-textarea:hover {
+      background: #F8FAFC;
+      border-color: #CBD5E1;
+    }
+    .review-textarea:focus {
+      background: #FFFFFF;
+      border-color: #2563EB;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    /* Quick badge for chuyên cần */
+    .quick-att-pill {
+      font-size: 11px;
+      padding: 1px 6px;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.1s;
+    }
+    .quick-att-pill:hover {
+      background: #DBEAFE;
+    }
+
+    /* Chữ ký khi in */
+    .slip-signatures {
+      display: none;
+      margin-top: 35px;
+      padding: 0 20px 20px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px 24px;
-      margin-bottom: 24px;
-      background: var(--color-surface-muted);
-      padding: 16px 20px;
-      border-radius: var(--radius-md);
-      font-size: 13.5px;
-    }
-    .signature-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
       text-align: center;
-      margin-top: 50px;
-      font-size: 13.5px;
+      font-size: 13px;
     }
-    .sign-title {
+    .sign-col h4 {
+      font-size: 13.5px;
       font-weight: 700;
-      color: var(--color-secondary);
-      margin-bottom: 70px;
+      margin-bottom: 50px;
+    }
+
+    @media print {
+      body {
+        background: #FFFFFF;
+        padding: 0;
+      }
+      .app-sidebar, .app-header, .top-toolbar, .no-print {
+        display: none !important;
+      }
+      .app-main {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .app-content {
+        padding: 0 !important;
+      }
+      .slip-view-wrapper {
+        padding: 0;
+      }
+      .excel-payslip-wrapper {
+        box-shadow: none;
+        border: 1px solid #000000;
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      .excel-header-cell {
+        background: #174375 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .excel-col-label, .row-total-income td {
+        background: #E8EFF7 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .slip-signatures {
+        display: grid !important;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="payslip-container">
-    <!-- NÚT THAO TÁC (ẨN KHI IN) -->
-    <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-      <a href="tinh-luong.html" class="btn btn-secondary">
-        <i data-lucide="arrow-left"></i> Quay lại bảng lương
-      </a>
-      <button class="btn btn-accent" onclick="window.print()">
-        <i data-lucide="printer"></i> In Phiếu Lương (A4 / A5)
+
+  <!-- ========================================================================= -->
+  <!-- SIDEBAR ĐIỀU HƯỚNG CHUNG (MENU HỆ THỐNG) -->
+  <!-- ========================================================================= -->
+  <aside class="app-sidebar no-print">
+    <div class="brand-header">
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+        <div class="brand-logo-icon">
+          <img src="../assets/logo.png" alt="HappyKids Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-text">
+          <h2>HAPPYKIDS</h2>
+          <p>Quản Lý Nhân Sự & Công</p>
+        </div>
+      </div>
+      <button class="btn-sidebar-close" id="btn-sidebar-collapse" title="Thu gọn Menu">
+        <i data-lucide="chevron-left"></i>
       </button>
     </div>
 
-    <!-- TIÊU ĐỀ TRƯỜNG -->
-    <div class="school-header" style="display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px;">
-      <img src="../assets/logo.png" alt="HappyKids Logo" style="width: 58px; height: 58px; object-fit: contain; border-radius: 8px; flex-shrink: 0;">
-      <div>
-        <h2 style="margin: 0; font-size: 16px;">TRƯỜNG MẦM NON & TRUNG TÂM PHÁT TRIỂN GIÁO DỤC HAPPYKIDS</h2>
-        <p id="slip-branch-name" style="margin: 3px 0 0; font-size: 13px;">Cơ sở: Chi nhánh Càng Long</p>
-      </div>
-    </div>
-    <div style="text-align: center; margin-bottom: 20px;">
-      <div class="voucher-title">PHIẾU THANH TOÁN LƯƠNG</div>
-      <p style="font-weight: 600; color: var(--color-secondary); margin-top: 4px;" id="slip-month-text">Tháng 10 / 2026</p>
+    <div class="sidebar-branch-selector">
+      <label>Cơ Sở Đang Chọn</label>
+      <select id="sidebar-branch-select" class="branch-select-box">
+        <option value="2">Chi nhánh Tân Nhựt</option>
+        <option value="1">Chi nhánh Càng Long</option>
+      </select>
     </div>
 
-    <!-- THÔNG TIN NHÂN SỰ -->
-    <div class="info-grid">
-      <div><strong>Họ và tên:</strong> <span id="slip-emp-name">...</span></div>
-      <div><strong>Mã giáo viên:</strong> <span id="slip-emp-code">...</span></div>
-      <div><strong>Chức vụ / Bộ phận:</strong> <span id="slip-emp-pos">...</span></div>
-      <div><strong>Hình thức lương:</strong> <span id="slip-emp-type">...</span></div>
-      <div><strong>Khung giờ hợp đồng:</strong> <span id="slip-emp-frame">...</span></div>
-      <div><strong>Số điện thoại:</strong> <span id="slip-emp-phone">...</span></div>
-    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Nghiệp vụ chính</div>
+      <a href="index.html" class="nav-item">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Tổng quan</span>
+      </a>
+      <a href="cham-cong.html" class="nav-item">
+        <i data-lucide="calendar-check"></i>
+        <span>Chấm công chi tiết</span>
+      </a>
+      <a href="nhan-su.html" class="nav-item">
+        <i data-lucide="users"></i>
+        <span>Hồ sơ giáo viên</span>
+      </a>
+      <a href="tinh-luong.html" class="nav-item">
+        <i data-lucide="calculator"></i>
+        <span>Bảng tính lương</span>
+      </a>
+      <!-- MENU MỚI: LƯƠNG CHI TIẾT -->
+      <a href="phieu-luong.html" class="nav-item active">
+        <i data-lucide="receipt"></i>
+        <span>Lương chi tiết</span>
+      </a>
 
-    <!-- BẢNG CHI TIẾT LƯƠNG & PHỤ CẤP -->
-    <table class="table-clean" style="margin-bottom: 24px;">
-      <thead>
-        <tr>
-          <th>STT</th>
-          <th>Khoản mục chi trả & khấu trừ</th>
-          <th style="text-align: center;">Số lượng / Định mức</th>
-          <th style="text-align: right;">Thành tiền (VNĐ)</th>
-        </tr>
-      </thead>
-      <tbody id="slip-tbody">
-        <tr>
-          <td colspan="4" style="text-align: center; padding: 20px;">Đang tải chi tiết phiếu lương...</td>
-        </tr>
-      </tbody>
-      <tfoot>
-        <tr style="background: var(--color-surface-muted);">
-          <td colspan="3" style="font-size: 15px; font-weight: 700; text-align: right; color: var(--color-secondary);">
-            THỰC LĨNH NHẬN VỀ:
-          </td>
-          <td style="text-align: right;">
-            <strong style="font-size: 18px; color: var(--color-accent);" id="slip-net-salary">0 ₫</strong>
-          </td>
-        </tr>
-      </tfoot>
-    </table>
+      <div class="nav-section-title">Hệ thống</div>
+      <a href="cau-hinh.html" class="nav-item">
+        <i data-lucide="settings"></i>
+        <span>Cấu hình tham số</span>
+      </a>
+    </nav>
 
-    <div style="font-size: 12.5px; color: var(--color-text-secondary); font-style: italic; margin-bottom: 20px;" id="slip-note">
-      * Mọi thắc mắc về số công hoặc phiếu lương, quý giáo viên vui lòng phản hồi phòng hành chính trong vòng 3 ngày làm việc.
+    <div class="sidebar-user">
+      <img src="https://ui-avatars.com/api/?name=Admin&background=2563EB&color=fff" alt="User Avatar" class="user-avatar">
+      <div class="user-info">
+        <div class="user-name">Đang tải...</div>
+        <div class="user-role">Quản trị viên</div>
+      </div>
+      <button class="btn-logout" id="btn-logout" title="Đăng xuất">
+        <i data-lucide="log-out"></i>
+      </button>
     </div>
+  </aside>
 
-    <!-- KHỐI CHỮ KÝ -->
-    <div class="signature-grid">
-      <div>
-        <div class="sign-title">Người Lập Phiếu</div>
-        <div style="font-size: 12px; color: var(--color-text-secondary);">(Ký, họ tên)</div>
+  <!-- ========================================================================= -->
+  <!-- MAIN APP CONTENT -->
+  <!-- ========================================================================= -->
+  <main class="app-main">
+    <header class="app-header no-print">
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+        <button class="btn-toggle-sidebar" id="btn-toggle-sidebar" title="Thu gọn / Mở rộng Menu">
+          <i data-lucide="menu"></i>
+          <span class="btn-toggle-text">Thu gọn Menu</span>
+        </button>
+        <div class="header-title-box">
+          <h1 id="page-title">Lương Chi Tiết Giáo Viên</h1>
+          <p>Mẫu phiếu lương cá nhân điền tổng, xem trước, in và xuất file Excel chuẩn</p>
+        </div>
       </div>
-      <div>
-        <div class="sign-title">Kế Toán Cơ Sở</div>
-        <div style="font-size: 12px; color: var(--color-text-secondary);">(Ký, họ tên)</div>
+
+      <div class="header-actions">
+        <!-- Nút Xuất Excel Mẫu Chuẩn -->
+        <button type="button" class="btn btn-secondary" id="btn-export-slip-excel" title="Xuất phiếu lương mẫu Excel chuẩn đẹp">
+          <i data-lucide="file-spreadsheet" style="color: #059669;"></i>
+          <span>Xuất File Excel</span>
+        </button>
+        <!-- Nút In Phiếu Lương -->
+        <button type="button" class="btn btn-secondary" onclick="window.print()" title="In ra giấy A4/A5">
+          <i data-lucide="printer"></i>
+          <span>In Phiếu Lương</span>
+        </button>
+        <!-- Nút Lưu Phiếu Lương -->
+        <button type="button" class="btn btn-accent" id="btn-save-slip" title="Lưu số liệu điền tổng (Ctrl + S)">
+          <i data-lucide="save"></i>
+          <span>Lưu Phiếu Lương</span>
+        </button>
       </div>
-      <div>
-        <div class="sign-title">Người Nhận Lương</div>
-        <div style="font-size: 12px; color: var(--color-text-secondary);">(Ký, họ tên)</div>
+    </header>
+
+    <div class="app-content">
+      <div class="slip-view-wrapper">
+        
+        <!-- THANH CÔNG CỤ CHỌN GIÁO VIÊN & KỲ LƯƠNG -->
+        <div class="slip-toolbar-card no-print">
+          <div class="toolbar-row">
+            <!-- Bộ chọn chi nhánh & kỳ lương -->
+            <div style="display: flex; gap: 8px; align-items: center; flex: 1;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--color-text-secondary); white-space: nowrap;">Kỳ lương:</span>
+              <select id="select-month" class="form-control" style="font-size: 13px; font-weight: 700; width: 110px; height: 34px;">
+                <option value="9">Tháng 9</option>
+                <option value="10" selected>Tháng 10</option>
+                <option value="11">Tháng 11</option>
+                <option value="12">Tháng 12</option>
+              </select>
+              <select id="select-year" class="form-control" style="font-size: 13px; font-weight: 700; width: 90px; height: 34px;">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+
+            <span id="save-status-indicator" style="font-weight: 700; font-size: 12px; color: #059669;"></span>
+          </div>
+
+          <div class="toolbar-row">
+            <!-- Lướt chọn từng giáo viên -->
+            <div class="emp-nav-group">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-prev-emp" title="Cô trước đó">
+                <i data-lucide="chevron-left"></i>
+              </button>
+              <select id="select-emp" class="form-control" style="flex: 1; font-weight: 700; color: #1E3A8A; height: 36px;">
+                <option value="">-- Đang nạp danh sách giáo viên... --</option>
+              </select>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-next-emp" title="Cô tiếp theo">
+                <i data-lucide="chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div style="font-size: 12px; color: #1E40AF; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 4px; padding: 6px 10px;">
+            <i data-lucide="info" style="width: 13px; height: 13px; display: inline-block; vertical-align: -2px;"></i>
+            <strong>Điền tổng trực tiếp:</strong> Nhập vào các ô <em>Chuyên cần, Số ca, Cơm, Đi lại, Khấu trừ, Nhận xét</em>. Dòng <strong>TỔNG THU</strong> & <strong>THỰC LĨNH</strong> tự động nhảy số tức thì!
+          </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- KHUNG PHIẾU LƯƠNG CÁ NHÂN GIÁO VIÊN — CHUẨN FORM EXCEL TRƯỜNG -->
+        <!-- ========================================================================= -->
+        <div class="excel-payslip-wrapper" id="print-area">
+          <table class="excel-table">
+            <!-- HEADER PHIẾU LƯƠNG XANH NAVY -->
+            <thead>
+              <tr>
+                <th colspan="2" class="excel-header-cell">
+                  <div class="excel-header-title">PHIẾU LƯƠNG CÁ NHÂN GIÁO VIÊN</div>
+                  <div class="excel-header-branch" id="disp-branch-header">TRUNG TÂM HAPPYKIDS TÂN NHỰT</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 1. HỌ VÀ TÊN -->
+              <tr>
+                <td class="excel-col-label">Họ và tên</td>
+                <td class="excel-col-val">
+                  <strong style="font-size: 14.5px; color: #0F172A;" id="disp-full-name">--</strong>
+                </td>
+              </tr>
+              <!-- 2. CHỨC VỤ -->
+              <tr>
+                <td class="excel-col-label">Chức vụ</td>
+                <td class="excel-col-val" id="disp-position">--</td>
+              </tr>
+              <!-- 3. THÁNG -->
+              <tr>
+                <td class="excel-col-label">Tháng</td>
+                <td class="excel-col-val" id="disp-month-code" style="font-weight: 600;">th10-26</td>
+              </tr>
+
+              <!-- DÒNG NGĂN CÁCH TRẮNG TRỐNG NHƯ EXCEL -->
+              <tr class="excel-spacer-row">
+                <td colspan="2"></td>
+              </tr>
+
+              <!-- 4. LƯƠNG CƠ BẢN -->
+              <tr>
+                <td class="excel-col-label">Lương cơ bản</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-base-salary" value="0" oninput="onSlipNumberInput(this); calcSlipLive();">
+                </td>
+              </tr>
+              <!-- 5. LƯƠNG THEO NGÀY (CÔNG THỨC) -->
+              <tr>
+                <td class="excel-col-label">Lương theo ngày</td>
+                <td class="excel-col-val">
+                  <span id="disp-daily-rate" style="font-weight: 600; color: #334155;">0 đ</span>
+                </td>
+              </tr>
+              <!-- 6. SỐ NGÀY (NGÀY CÔNG THỰC TẾ X) -->
+              <tr>
+                <td class="excel-col-label">Số ngày</td>
+                <td class="excel-col-val">
+                  <input type="number" step="0.5" class="slip-cell-input" id="inp-days-x" value="26" oninput="calcSlipLive();">
+                </td>
+              </tr>
+              <!-- 7. SỐ CA -->
+              <tr>
+                <td class="excel-col-label">Số ca</td>
+                <td class="excel-col-val">
+                  <input type="number" step="0.5" class="slip-cell-input" id="inp-slots" value="0" oninput="calcSlipLive();">
+                </td>
+              </tr>
+              <!-- 8. SỐ TIỀN (TIỀN CA / TĂNG CA) -->
+              <tr>
+                <td class="excel-col-label">Số tiền</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-slot-money" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                </td>
+              </tr>
+              <!-- 9. CHUYÊN CẦN (ĐIỀN TỔNG THEO THÁNG) -->
+              <tr>
+                <td class="excel-col-label">
+                  <div>Chuyên cần</div>
+                  <!-- Các nút gợi ý chọn nhanh chuyên cần -->
+                  <div class="no-print" style="margin-top: 4px; display: flex; gap: 3px; flex-wrap: wrap;">
+                    <span class="quick-att-pill" onclick="quickFillAtt(1000000)">1tr</span>
+                    <span class="quick-att-pill" onclick="quickFillAtt(700000)">700k</span>
+                    <span class="quick-att-pill" onclick="quickFillAtt(500000)">500k</span>
+                    <span class="quick-att-pill" onclick="quickFillAtt(300000)">300k</span>
+                    <span class="quick-att-pill" onclick="quickFillAtt(0)" style="color:#BE123C;">0đ</span>
+                  </div>
+                </td>
+                <td class="excel-col-val" style="background: #FEF3C7;">
+                  <input type="text" class="slip-cell-input highlight-cc" id="inp-attendance" value="0 đ" placeholder="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" title="Tiền chuyên cần là tùy tháng Giám đốc sẽ cho (không để cố định)">
+                </td>
+              </tr>
+              <!-- 10. TIỀN CƠM -->
+              <tr>
+                <td class="excel-col-label">Cơm</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-lunch" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                </td>
+              </tr>
+              <!-- 11. THƯỞNG ĐI LẠI -->
+              <tr>
+                <td class="excel-col-label">Thưởng đi lại</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-travel" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                </td>
+              </tr>
+
+              <!-- 12. TỔNG THU (IN ĐẬM TỰ ĐỘNG) -->
+              <tr class="row-total-income">
+                <td class="excel-col-label">TỔNG THU</td>
+                <td class="excel-col-val">
+                  <span id="disp-total-income">0 đ</span>
+                </td>
+              </tr>
+
+              <!-- 13. KHẤU TRỪ -->
+              <tr>
+                <td class="excel-col-label">Khấu trừ</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-deductions" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #BE123C;">
+                </td>
+              </tr>
+
+              <!-- 14. THỰC LĨNH (IN ĐẬM TO, VIỀN XANH LÁ CHUẨN EXCEL) -->
+              <tr class="row-net-salary">
+                <td class="excel-col-label">THỰC LĨNH</td>
+                <td class="excel-col-val">
+                  <span id="disp-net-salary">0 đ</span>
+                </td>
+              </tr>
+
+              <!-- 15. NHẬN XÉT CỦA GIÁM ĐỐC -->
+              <tr class="row-review">
+                <td class="excel-col-label">Nhận xét</td>
+                <td class="excel-col-val">
+                  <textarea class="review-textarea" id="inp-director-review" placeholder="Nhận xét tình hình công tác, năng lực giảng dạy của cô..."></textarea>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- CHỮ KÝ DƯỚI CHÂN KHI IN RA GIẤY -->
+          <div class="slip-signatures">
+            <div class="sign-col">
+              <h4>Người Lập Phiếu</h4>
+              <div>(Ký, ghi rõ họ tên)</div>
+            </div>
+            <div class="sign-col">
+              <h4>Người Nhận Lương</h4>
+              <div>(Ký, ghi rõ họ tên)</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
-  </div>
+  </main>
 
   <script src="../js/api.js"></script>
   <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <!-- Thư viện xuất Excel chuẩn -->
+  <script src="../js/libs/exceljs.min.js"></script>
+  <script src="../js/libs/FileSaver.min.js"></script>
+
   <script>
     utils.initIcons();
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const empId = urlParams.get('employee_id');
-      const month = urlParams.get('month') || 10;
-      const year = urlParams.get('year') || 2026;
+    // Biến toàn cục
+    let currentBranchId = 2; // Mặc định mở Tân Nhựt như hình user gửi
+    let currentMonth = 10;
+    let currentYear = 2026;
+    let currentEmpId = null;
+    let branchEmployees = [];
+    let currentSlipData = null;
 
-      if (!empId) {
-        alert('Thiếu tham số employee_id');
-        return;
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Khởi tạo Auth & kiểm tra phiên đăng nhập
+      await auth.checkSession();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('branch_id')) currentBranchId = parseInt(urlParams.get('branch_id'));
+      if (urlParams.get('month')) currentMonth = parseInt(urlParams.get('month'));
+      if (urlParams.get('year')) currentYear = parseInt(urlParams.get('year'));
+      if (urlParams.get('employee_id')) currentEmpId = parseInt(urlParams.get('employee_id'));
+
+      document.getElementById('sidebar-branch-select').value = currentBranchId;
+      document.getElementById('select-month').value = currentMonth;
+      document.getElementById('select-year').value = currentYear;
+
+      // Event listeners
+      document.getElementById('sidebar-branch-select').addEventListener('change', async (e) => {
+        currentBranchId = parseInt(e.target.value);
+        currentEmpId = null;
+        await loadBranchEmployees();
+      });
+
+      document.getElementById('select-month').addEventListener('change', async (e) => {
+        currentMonth = parseInt(e.target.value);
+        await loadPayslipData();
+      });
+
+      document.getElementById('select-year').addEventListener('change', async (e) => {
+        currentYear = parseInt(e.target.value);
+        await loadPayslipData();
+      });
+
+      document.getElementById('select-emp').addEventListener('change', async (e) => {
+        currentEmpId = parseInt(e.target.value);
+        await loadPayslipData();
+      });
+
+      document.getElementById('btn-prev-emp').addEventListener('click', () => navigateEmp(-1));
+      document.getElementById('btn-next-emp').addEventListener('click', () => navigateEmp(1));
+
+      document.getElementById('btn-save-slip').addEventListener('click', saveCurrentPayslip);
+      document.getElementById('btn-export-slip-excel').addEventListener('click', exportExcelSingleSlip);
+
+      document.getElementById('btn-logout')?.addEventListener('click', () => auth.logout());
+      document.getElementById('btn-sidebar-collapse')?.addEventListener('click', () => {
+        document.querySelector('.app-sidebar')?.classList.toggle('collapsed');
+      });
+      document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => {
+        document.querySelector('.app-sidebar')?.classList.toggle('show');
+      });
+
+      // Phím tắt Ctrl + S để lưu
+      window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          saveCurrentPayslip();
+        }
+      });
+
+      await loadBranchEmployees();
+    });
+
+    // 1. Tải danh sách giáo viên trong chi nhánh
+    async function loadBranchEmployees() {
+      const branchSelect = document.getElementById('sidebar-branch-select');
+      const branchName = branchSelect.options[branchSelect.selectedIndex].text;
+      document.getElementById('disp-branch-header').textContent = `TRUNG TÂM HAPPYKIDS ${branchName.toUpperCase().replace('CHI NHÁNH ', '')}`;
+
+      const res = await api.get('employees.php', { branch_id: currentBranchId });
+      if (res.status === 'success' && res.data) {
+        branchEmployees = res.data;
+        const empSelect = document.getElementById('select-emp');
+
+        if (branchEmployees.length === 0) {
+          empSelect.innerHTML = `<option value="">-- Chi nhánh chưa có nhân sự --</option>`;
+          return;
+        }
+
+        empSelect.innerHTML = branchEmployees.map(e => `
+          <option value="${e.id}">${e.employee_code} — ${e.full_name}</option>
+        `).join('');
+
+        // Nếu có empId từ URL mà nằm trong chi nhánh thì chọn, nếu không chọn người đầu tiên
+        if (currentEmpId && branchEmployees.some(e => e.id == currentEmpId)) {
+          empSelect.value = currentEmpId;
+        } else {
+          currentEmpId = branchEmployees[0].id;
+          empSelect.value = currentEmpId;
+        }
+
+        await loadPayslipData();
+      }
+    }
+
+    // 2. Chuyển đổi qua lại giữa các cô (Prev / Next)
+    function navigateEmp(offset) {
+      if (branchEmployees.length === 0) return;
+      const curIdx = branchEmployees.findIndex(e => e.id == currentEmpId);
+      let nextIdx = curIdx + offset;
+      if (nextIdx < 0) nextIdx = branchEmployees.length - 1;
+      if (nextIdx >= branchEmployees.length) nextIdx = 0;
+
+      currentEmpId = branchEmployees[nextIdx].id;
+      document.getElementById('select-emp').value = currentEmpId;
+      loadPayslipData();
+    }
+
+    // 3. Tải chi tiết phiếu lương của giáo viên
+    async function loadPayslipData() {
+      if (!currentEmpId) return;
+
+      const emp = branchEmployees.find(e => e.id == currentEmpId);
+      const shortYear = String(currentYear).slice(-2);
+      document.getElementById('disp-month-code').textContent = `th${currentMonth}-${shortYear}`;
+
+      if (emp) {
+        document.getElementById('disp-full-name').textContent = emp.full_name;
+        document.getElementById('disp-position').textContent = emp.position || 'Giáo viên';
       }
 
+      // Gọi API lấy dữ liệu phiếu lương tháng
       const res = await api.get('payroll.php', {
         action: 'payslip',
-        employee_id: empId,
-        month: month,
-        year: year
+        employee_id: currentEmpId,
+        month: currentMonth,
+        year: currentYear
       });
 
       if (res.status === 'success' && res.data) {
-        renderPayslip(res.data);
+        currentSlipData = res.data;
+        populateSlipForm(currentSlipData);
       } else {
-        document.getElementById('slip-tbody').innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--color-danger); padding: 30px;">Lỗi: ${res.message}</td></tr>`;
+        // Nếu tháng này chưa có bảng lương -> lấy thông số cố định từ hồ sơ để hiển thị sẵn
+        populateFromEmployeeProfile(emp);
       }
-    });
+    }
 
-    function renderPayslip(p) {
-      document.getElementById('slip-branch-name').textContent = `Cơ sở: ${p.branch_name || 'HappyKids'}`;
-      document.getElementById('slip-month-text').textContent = `Tháng ${p.month} / ${p.year}`;
-      document.getElementById('slip-emp-name').textContent = p.full_name;
-      document.getElementById('slip-emp-code').textContent = p.employee_code;
-      document.getElementById('slip-emp-pos').textContent = p.position || '-';
-      document.getElementById('slip-emp-type').textContent = p.salary_type === 'FIXED' ? 'Lương Cứng' : 'Lương Theo Giờ';
-      document.getElementById('slip-emp-frame').textContent = p.time_frame || '-';
-      document.getElementById('slip-emp-phone').textContent = p.phone || '-';
+    // Điền dữ liệu đã lưu trong Database
+    function populateSlipForm(d) {
+      document.getElementById('disp-full-name').textContent = d.full_name;
+      document.getElementById('disp-position').textContent = d.position || '-';
 
-      const tbody = document.getElementById('slip-tbody');
-      let rows = [];
-      let idx = 1;
+      const emp = branchEmployees.find(e => e.id == currentEmpId);
+      // Luôn lấy Lương cơ bản & Ngày chuẩn cấu hình thực tế từ hồ sơ nhân sự
+      const baseSalary = parseFloat(d.emp_base_salary !== undefined && d.emp_base_salary !== null ? d.emp_base_salary : (emp ? emp.base_salary : (d.base_salary || 0)));
+      const stdDays = parseFloat(d.emp_std_days !== undefined && d.emp_std_days !== null ? d.emp_std_days : (emp ? emp.standard_work_days : (d.standard_work_days || 26.0)));
+      const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
+      const daysX = parseFloat(d.total_days_x !== undefined ? d.total_days_x : stdDays);
 
-      if (p.salary_type === 'FIXED') {
-        rows.push(`
-          <tr>
-            <td>${idx++}</td>
-            <td>Lương cơ bản theo thỏa thuận hợp đồng</td>
-            <td style="text-align: center;">26 ngày chuẩn</td>
-            <td style="text-align: right;">${utils.formatCurrency(p.base_salary)}</td>
-          </tr>
-          <tr>
-            <td>${idx++}</td>
-            <td>Lương tính theo ngày công thực tế (X)</td>
-            <td style="text-align: center;"><strong>${p.total_days_x} ngày</strong></td>
-            <td style="text-align: right;"><strong>${utils.formatCurrency(p.salary_by_days)}</strong></td>
-          </tr>
-        `);
+      document.getElementById('inp-base-salary').value = formatMoney(baseSalary);
+      document.getElementById('disp-daily-rate').textContent = formatMoney(dailyRate) + ' đ';
+      document.getElementById('inp-days-x').value = daysX;
 
-        if (p.ot_pay > 0) {
-          rows.push(`
-            <tr>
-              <td>${idx++}</td>
-              <td>Tiền tăng ca ngoài giờ (${p.ot_count || 0} lần)</td>
-              <td style="text-align: center;">${p.total_ot_hours || 0} giờ</td>
-              <td style="text-align: right;">${utils.formatCurrency(p.ot_pay)}</td>
-            </tr>
-          `);
-        }
-        if (p.lunch_allowance > 0) {
-          rows.push(`
-            <tr>
-              <td>${idx++}</td>
-              <td>Phụ cấp ăn trưa theo ngày công</td>
-              <td style="text-align: center;">${p.total_days_x} ngày × 25k</td>
-              <td style="text-align: right;">${utils.formatCurrency(p.lunch_allowance)}</td>
-            </tr>
-          `);
-        }
-        if (p.attendance_allowance > 0) {
-          rows.push(`
-            <tr>
-              <td>${idx++}</td>
-              <td>Phụ cấp chuyên cần</td>
-              <td style="text-align: center;">Đạt định mức</td>
-              <td style="text-align: right;">${utils.formatCurrency(p.attendance_allowance)}</td>
-            </tr>
-          `);
-        }
-        if (p.boarding_pay > 0) {
-          rows.push(`
-            <tr>
-              <td>${idx++}</td>
-              <td>Phụ cấp Bán Trú</td>
-              <td style="text-align: center;">Theo hợp đồng</td>
-              <td style="text-align: right;">${utils.formatCurrency(p.boarding_pay)}</td>
-            </tr>
-          `);
-        }
+      const isFixed = (emp ? emp.salary_type : d.salary_type) === 'FIXED';
+      const slots = isFixed 
+        ? parseFloat(d.ot_count || (d.total_ot_hours > 0 ? (d.total_ot_hours / 1.5) : 0)) 
+        : parseFloat(d.total_slots || 0);
+      const slotMoney = parseFloat(isFixed ? (d.ot_pay || 0) : (d.salary_by_slots || 0));
+      document.getElementById('inp-slots').value = slots;
+      document.getElementById('inp-slot-money').value = formatMoney(slotMoney) + ' đ';
+
+      // Chuyên cần (Dữ liệu phát sinh)
+      const att = parseFloat(d.attendance_allowance || 0);
+      document.getElementById('inp-attendance').value = formatMoney(att) + ' đ';
+
+      // Tiền cơm: nếu bản ghi có lưu tiền cơm > 0 thì dùng; nếu chưa có thì tính daysX * 25k (nếu có hưởng cơm)
+      const hasLunch = emp ? (emp.has_lunch_allowance == 1) : (!d.has_lunch_allowance || d.has_lunch_allowance == 1);
+      const lunch = (d.lunch_allowance !== undefined && parseFloat(d.lunch_allowance) > 0)
+        ? parseFloat(d.lunch_allowance)
+        : (hasLunch ? Math.round(daysX * 25000) : 0);
+      document.getElementById('inp-lunch').value = formatMoney(lunch) + ' đ';
+
+      // Thưởng đi lại: ưu tiên đã lưu, nếu 0 thì lấy từ hồ sơ cấu hình cố định
+      const travel = (d.travel_allowance !== undefined && parseFloat(d.travel_allowance) > 0)
+        ? parseFloat(d.travel_allowance)
+        : parseFloat(d.emp_travel_allowance || (emp ? emp.travel_allowance : 0));
+      document.getElementById('inp-travel').value = formatMoney(travel) + ' đ';
+
+      // Khấu trừ
+      const deduct = parseFloat(d.deductions || 0);
+      document.getElementById('inp-deductions').value = formatMoney(deduct) + ' đ';
+
+      // Nhận xét
+      document.getElementById('inp-director-review').value = d.director_review || d.note || (emp ? emp.notes : '') || '';
+
+      calcSlipLive();
+    }
+
+    // Điền mặc định từ hồ sơ nhân sự cố định nếu tháng đó chưa từng lưu
+    function populateFromEmployeeProfile(emp) {
+      if (!emp) return;
+      const baseSalary = parseFloat(emp.base_salary || 0);
+      const stdDays = parseFloat(emp.standard_work_days || 26.0);
+      const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
+      const hasLunch = emp.has_lunch_allowance == 1;
+
+      document.getElementById('inp-base-salary').value = formatMoney(baseSalary);
+      document.getElementById('disp-daily-rate').textContent = formatMoney(dailyRate) + ' đ';
+      document.getElementById('inp-days-x').value = stdDays; // Mặc định đủ ngày công
+      document.getElementById('inp-slots').value = 0;
+      document.getElementById('inp-slot-money').value = '0 đ';
+
+      // Chuyên cần ban đầu luôn = 0 đ (chờ GĐ điền)
+      document.getElementById('inp-attendance').value = '0 đ';
+
+      // Cơm
+      const lunch = hasLunch ? Math.round(stdDays * 25000) : 0;
+      document.getElementById('inp-lunch').value = formatMoney(lunch) + ' đ';
+
+      // Thưởng đi lại theo hợp đồng
+      const travel = parseFloat(emp.travel_allowance || 0);
+      document.getElementById('inp-travel').value = formatMoney(travel) + ' đ';
+
+      // Khấu trừ
+      document.getElementById('inp-deductions').value = '0 đ';
+
+      // Nhận xét mặc định từ ghi chú hồ sơ
+      document.getElementById('inp-director-review').value = emp.notes || '';
+
+      calcSlipLive();
+    }
+
+    // Tính toán theo thời gian thực khi người dùng gõ
+    function calcSlipLive() {
+      const baseSalary = parseMoney(document.getElementById('inp-base-salary').value);
+      const daysX = parseFloat(document.getElementById('inp-days-x').value) || 0;
+      const emp = branchEmployees.find(e => e.id == currentEmpId);
+      const stdDays = emp ? parseFloat(emp.standard_work_days || 26.0) : 26.0;
+
+      // Lương 1 ngày
+      const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
+      document.getElementById('disp-daily-rate').textContent = formatMoney(dailyRate) + ' đ';
+
+      // Lương theo ngày công thực tế (Nếu làm đủ ngày chuẩn thì = đúng Lương cơ bản)
+      const salaryByDays = (daysX === stdDays) ? baseSalary : Math.round(dailyRate * daysX);
+
+      const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
+      const att = parseMoney(document.getElementById('inp-attendance').value);
+      const lunch = parseMoney(document.getElementById('inp-lunch').value);
+      const travel = parseMoney(document.getElementById('inp-travel').value);
+      const deduct = parseMoney(document.getElementById('inp-deductions').value);
+
+      // TỔNG THU
+      const totalIncome = salaryByDays + slotMoney + att + lunch + travel;
+      document.getElementById('disp-total-income').textContent = formatMoney(totalIncome) + ' đ';
+
+      // THỰC LĨNH
+      const netSalary = Math.max(0, totalIncome - deduct);
+      document.getElementById('disp-net-salary').textContent = formatMoney(netSalary) + ' đ';
+    }
+
+    // Chọn nhanh mức chuyên cần
+    function quickFillAtt(amount) {
+      document.getElementById('inp-attendance').value = formatMoney(amount) + ' đ';
+      calcSlipLive();
+    }
+
+    // 4. Lưu phiếu lương vào Database
+    async function saveCurrentPayslip() {
+      if (!currentEmpId) return;
+
+      const emp = branchEmployees.find(e => e.id == currentEmpId);
+      const baseSalary = parseMoney(document.getElementById('inp-base-salary').value);
+      const daysX = parseFloat(document.getElementById('inp-days-x').value) || 0;
+      const stdDays = emp ? parseFloat(emp.standard_work_days || 26.0) : 26.0;
+      const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
+      const salaryByDays = (daysX === stdDays) ? baseSalary : Math.round(dailyRate * daysX);
+
+      const slots = parseFloat(document.getElementById('inp-slots').value) || 0;
+      const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
+      const att = parseMoney(document.getElementById('inp-attendance').value);
+      const lunch = parseMoney(document.getElementById('inp-lunch').value);
+      const travel = parseMoney(document.getElementById('inp-travel').value);
+      const deduct = parseMoney(document.getElementById('inp-deductions').value);
+      const review = document.getElementById('inp-director-review').value.trim();
+
+      const totalIncome = salaryByDays + slotMoney + att + lunch + travel;
+      const netSalary = Math.max(0, totalIncome - deduct);
+
+      const payload = {
+        employee_id: currentEmpId,
+        month: currentMonth,
+        year: currentYear,
+        salary_type: emp ? emp.salary_type : 'FIXED',
+        base_salary: baseSalary,
+        standard_work_days: stdDays,
+        daily_salary_rate: dailyRate,
+        total_days_x: daysX,
+        salary_by_days: salaryByDays,
+        total_slots: (emp && emp.salary_type === 'HOURLY') ? slots : 0,
+        salary_by_slots: (emp && emp.salary_type === 'HOURLY') ? slotMoney : 0,
+        ot_count: (emp && emp.salary_type === 'FIXED') ? slots : 0,
+        total_ot_hours: (emp && emp.salary_type === 'FIXED') ? slots * 1.5 : 0,
+        ot_pay: (emp && emp.salary_type === 'FIXED') ? slotMoney : 0,
+        attendance_allowance: att,
+        lunch_allowance: lunch,
+        travel_allowance: travel,
+        bonus: 0,
+        deductions: deduct,
+        net_salary: netSalary,
+        director_review: review,
+        note: review
+      };
+
+      const statusEl = document.getElementById('save-status-indicator');
+      statusEl.textContent = 'Đang lưu...';
+      statusEl.style.color = '#2563EB';
+
+      const res = await api.put('payroll.php', payload);
+
+      if (res.status === 'success') {
+        utils.showToast(`Đã lưu phiếu lương của ${emp ? emp.full_name : ''}!`, 'success');
+        statusEl.textContent = '✓ Đã lưu thành công!';
+        statusEl.style.color = '#059669';
+        setTimeout(() => { statusEl.textContent = ''; }, 3000);
       } else {
-        // Lương giờ
-        rows.push(`
-          <tr>
-            <td>${idx++}</td>
-            <td>Tiền dạy ca chuyên biệt (90 phút/ca)</td>
-            <td style="text-align: center;"><strong>${p.total_slots} ca</strong></td>
-            <td style="text-align: right;"><strong>${utils.formatCurrency(p.salary_by_slots)}</strong></td>
-          </tr>
-        `);
-        if (p.boarding_pay > 0) {
-          rows.push(`
-            <tr>
-              <td>${idx++}</td>
-              <td>Phụ cấp trực Bán Trú (BT)</td>
-              <td style="text-align: center;">${p.total_boarding_days} buổi</td>
-              <td style="text-align: right;">${utils.formatCurrency(p.boarding_pay)}</td>
-            </tr>
-          `);
+        utils.showToast(res.message || 'Lỗi khi lưu phiếu lương', 'error');
+        statusEl.textContent = 'Lỗi lưu dữ liệu';
+        statusEl.style.color = '#BE123C';
+      }
+    }
+
+    // 5. Xuất file Excel chuẩn 100% mẫu phiếu 2 cột
+    async function exportExcelSingleSlip() {
+      if (!window.ExcelJS || !window.saveAs) {
+        utils.showToast('Đang nạp thư viện Excel...', 'error');
+        return;
+      }
+
+      const emp = branchEmployees.find(e => e.id == currentEmpId);
+      const empName = emp ? emp.full_name : 'GiaoVien';
+      const branchSelect = document.getElementById('sidebar-branch-select');
+      const branchName = branchSelect.options[branchSelect.selectedIndex].text.toUpperCase();
+
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Phieu_Luong_Ca_Nhan', {
+        views: [{ showGridLines: true }]
+      });
+
+      sheet.getColumn(1).width = 24;
+      sheet.getColumn(2).width = 30;
+
+      // Header 2 dòng xanh đậm
+      sheet.mergeCells('A1:B1');
+      sheet.getCell('A1').value = 'PHIẾU LƯƠNG CÁ NHÂN GIÁO VIÊN';
+      sheet.getCell('A1').font = { name: 'Segoe UI', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
+      sheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF174375' } };
+      sheet.getRow(1).height = 28;
+
+      sheet.mergeCells('A2:B2');
+      sheet.getCell('A2').value = `TRUNG TÂM HAPPYKIDS ${branchName.replace('CHI NHÁNH ', '')}`;
+      sheet.getCell('A2').font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FFE2E8F0' } };
+      sheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
+      sheet.getCell('A2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF174375' } };
+      sheet.getRow(2).height = 24;
+
+      const thinBorder = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
+
+      const shortYear = String(currentYear).slice(-2);
+      const baseSalary = parseMoney(document.getElementById('inp-base-salary').value);
+      const dailyRate = parseMoney(document.getElementById('disp-daily-rate').textContent);
+      const daysX = parseFloat(document.getElementById('inp-days-x').value) || 0;
+      const slots = parseFloat(document.getElementById('inp-slots').value) || 0;
+      const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
+      const att = parseMoney(document.getElementById('inp-attendance').value);
+      const lunch = parseMoney(document.getElementById('inp-lunch').value);
+      const travel = parseMoney(document.getElementById('inp-travel').value);
+      const totalIncome = parseMoney(document.getElementById('disp-total-income').textContent);
+      const deduct = parseMoney(document.getElementById('inp-deductions').value);
+      const netSalary = parseMoney(document.getElementById('disp-net-salary').textContent);
+      const review = document.getElementById('inp-director-review').value;
+
+      const rowsData = [
+        ['Họ và tên', emp ? emp.full_name : '', 'text-bold'],
+        ['Chức vụ', emp ? emp.position : '', 'text'],
+        ['Tháng', `th${currentMonth}-${shortYear}`, 'text'],
+        ['', '', 'spacer'],
+        ['Lương cơ bản', baseSalary, 'currency-plain'],
+        ['Lương theo ngày', dailyRate, 'currency'],
+        ['Số ngày', daysX, 'number'],
+        ['Số ca', slots, 'number'],
+        ['Số tiền', slotMoney, 'currency'],
+        ['Chuyên cần', att, 'currency'],
+        ['Cơm', lunch, 'currency'],
+        ['Thưởng đi lại', travel, 'currency'],
+        ['TỔNG THU', totalIncome, 'currency-bold'],
+        ['Khấu trừ', deduct, 'currency'],
+        ['THỰC LĨNH', netSalary, 'currency-net'],
+        ['Nhận xét', review, 'text-review']
+      ];
+
+      let rIdx = 3;
+      rowsData.forEach(([label, val, type]) => {
+        const row = sheet.getRow(rIdx);
+        row.height = type === 'text-review' ? 45 : (type === 'spacer' ? 8 : 22);
+
+        const c1 = row.getCell(1);
+        const c2 = row.getCell(2);
+
+        if (type === 'spacer') {
+          c1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+          c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+        } else {
+          c1.value = label;
+          c1.font = { name: 'Segoe UI', size: 10, bold: type.includes('bold') || type.includes('net'), color: { argb: 'FF1E293B' } };
+          c1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: (type === 'currency-bold') ? 'FFDEEAF6' : 'FFE8EFF7' } };
+          c1.alignment = { vertical: 'middle', horizontal: type === 'text-review' ? 'center' : 'left' };
+          c1.border = thinBorder;
+
+          c2.value = val;
+          c2.font = { name: 'Segoe UI', size: 10, bold: type.includes('bold') || type.includes('net'), color: { argb: 'FF0F172A' } };
+          c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: (type === 'currency-bold') ? 'FFDEEAF6' : 'FFFFFFFF' } };
+          c2.border = thinBorder;
+
+          if (type.includes('currency')) {
+            c2.alignment = { vertical: 'middle', horizontal: 'right' };
+            c2.numFmt = type === 'currency-plain' ? '#,##0' : '#,##0 "đ"';
+          } else if (type === 'number') {
+            c2.alignment = { vertical: 'middle', horizontal: 'right' };
+            c2.numFmt = '#,##0';
+          } else if (type === 'text-review') {
+            c2.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+          } else {
+            c2.alignment = { vertical: 'middle', horizontal: 'right' };
+          }
+
+          if (type === 'currency-net') {
+            c1.border = { top: { style: 'medium', color: { argb: 'FF10B981' } }, bottom: { style: 'medium', color: { argb: 'FF10B981' } }, left: { style: 'medium', color: { argb: 'FF10B981' } }, right: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+            c2.border = { top: { style: 'medium', color: { argb: 'FF10B981' } }, bottom: { style: 'medium', color: { argb: 'FF10B981' } }, right: { style: 'medium', color: { argb: 'FF10B981' } }, left: { style: 'thin', color: { argb: 'FFCBD5E1' } } };
+            c2.font = { name: 'Segoe UI', size: 11, bold: true, color: { argb: 'FF0F172A' } };
+          }
         }
-      }
 
-      if (p.bonus > 0) {
-        rows.push(`
-          <tr>
-            <td>${idx++}</td>
-            <td>Tiền thưởng khen thưởng thêm</td>
-            <td style="text-align: center;">Thưởng</td>
-            <td style="text-align: right; color: var(--color-accent);">+ ${utils.formatCurrency(p.bonus)}</td>
-          </tr>
-        `);
-      }
-      if (p.deductions > 0) {
-        rows.push(`
-          <tr>
-            <td>${idx++}</td>
-            <td>Các khoản khấu trừ / phạt đi trễ (${p.late_count || 0} lần trễ, ${p.total_late_minutes || 0}p)</td>
-            <td style="text-align: center;">Khấu trừ</td>
-            <td style="text-align: right; color: var(--color-danger);">- ${utils.formatCurrency(p.deductions)}</td>
-          </tr>
-        `);
-      }
+        rIdx++;
+      });
 
-      tbody.innerHTML = rows.join('');
-      document.getElementById('slip-net-salary').textContent = utils.formatCurrency(p.net_salary);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const safeName = (emp ? emp.full_name : 'GiaoVien').replace(/\s+/g, '_');
+      const filename = `Phieu_Luong_${safeName}_T${currentMonth}_${currentYear}.xlsx`;
 
-      if (p.note) {
-        document.getElementById('slip-note').textContent = `* Ghi chú: ${p.note}`;
-      }
+      saveAs(blob, filename);
+      utils.showToast(`Đã xuất file Excel phiếu lương của ${empName}!`, 'success');
+    }
+
+    // Helper tiện ích
+    function formatMoney(num) {
+      if (!num || isNaN(num)) return '0';
+      return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function parseMoney(str) {
+      if (!str) return 0;
+      const clean = String(str).replace(/[^0-9]/g, '');
+      return clean ? parseInt(clean, 10) : 0;
+    }
+
+    function onSlipNumberInput(inputEl) {
+      const val = parseMoney(inputEl.value);
+      inputEl.value = formatMoney(val) + ' đ';
     }
   </script>
 </body>

@@ -29,6 +29,9 @@ class Payroll {
             if (!in_array('director_review', $cols)) {
                 $this->db->exec("ALTER TABLE monthly_payroll ADD COLUMN director_review TEXT NULL COMMENT 'Nhận xét của Giám đốc' AFTER note");
             }
+            // Đảm bảo số ca và tăng ca hỗ trợ 2 số thập phân (ví dụ 0.67 ca, 1.33 ca)
+            $this->db->exec("ALTER TABLE monthly_payroll MODIFY COLUMN ot_count DECIMAL(5,2) DEFAULT 0 COMMENT 'Số ca tăng ca'");
+            $this->db->exec("ALTER TABLE monthly_payroll MODIFY COLUMN total_slots DECIMAL(6,2) DEFAULT 0 COMMENT 'Tổng số ca dạy'");
         } catch (Throwable $e) {}
     }
 
@@ -207,12 +210,14 @@ class Payroll {
 
                 foreach ($attendanceList as $a) {
                     // CHỈ TÍNH THEO SỐ CA THỰC TẾ ĐƯỢC QUẢN LÝ XÁC NHẬN (actual_slots)
-                    $slots = ($a['actual_slots'] !== null && $a['actual_slots'] !== '') ? (float)$a['actual_slots'] : 0.0;
+                    $rawSlots = ($a['actual_slots'] !== null && $a['actual_slots'] !== '') ? str_replace(',', '.', (string)$a['actual_slots']) : '0';
+                    $slots = round((float)$rawSlots, 2);
                     $totalSlots += $slots;
                     if (!empty($a['has_boarding'])) {
                         $boardingDays++;
                     }
                 }
+                $totalSlots = round($totalSlots, 2);
 
                 $slotRate = (float)($emp['hourly_rate'] ?: ($config['default_slot_rate'] ?? 120000));
                 $boardRate = (float)$emp['boarding_allowance'];
@@ -463,7 +468,8 @@ class Payroll {
             ]);
         } else {
             // HOURLY
-            $totalSlots = isset($d['total_slots']) ? (float)$d['total_slots'] : 0.0;
+            $rawSlots = isset($d['total_slots']) ? str_replace(',', '.', (string)$d['total_slots']) : '0';
+            $totalSlots = round((float)$rawSlots, 2);
             $hourlyRate = isset($d['hourly_rate']) ? (float)$d['hourly_rate'] : (float)($emp['hourly_rate'] ?: 120000);
             $salaryBySlots = isset($d['salary_by_slots']) ? (float)$d['salary_by_slots'] : round($totalSlots * $hourlyRate);
             $boardingDays = isset($d['total_boarding_days']) ? (int)$d['total_boarding_days'] : 0;

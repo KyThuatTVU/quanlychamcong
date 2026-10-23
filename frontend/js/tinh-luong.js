@@ -249,7 +249,7 @@ function renderPayrollTable() {
           <td>${index + 1}</td>
           <td><strong style="color: var(--color-primary);">${item.employee_code}</strong></td>
           <td><strong>${item.full_name}</strong></td>
-          <td><strong style="color: var(--color-accent);">${item.total_slots} ca</strong></td>
+          <td><strong style="color: var(--color-accent);">${parseFloat(item.total_slots || 0).toFixed(2).replace(/\.?0+$/, '')} ca</strong></td>
           <td>${utils.formatCurrency(item.hourly_rate || item.emp_hourly_rate || 120000)}</td>
           <td><strong class="cell-currency-bold">${utils.formatCurrency(item.salary_by_slots)}</strong></td>
           <td>${item.boarding_pay > 0 ? utils.formatCurrency(item.boarding_pay) + ` (${item.total_boarding_days || 0} buổi)` : '-'}</td>
@@ -366,7 +366,8 @@ window.calcEditLive = function() {
     const byDays = Math.round(dailyRate * daysX);
     document.getElementById('edit-f-salary-by-days').value = byDays;
   } else {
-    const slots = parseFloat(document.getElementById('edit-h-slots').value) || 0;
+    const rawSlots = String(document.getElementById('edit-h-slots').value || '0').replace(',', '.');
+    const slots = parseFloat(rawSlots) || 0;
     const rate = parseFloat(document.getElementById('edit-h-rate').value) || 120000;
     document.getElementById('edit-h-salary-by-slots').value = Math.round(slots * rate);
 
@@ -377,7 +378,8 @@ window.calcEditLive = function() {
 };
 
 window.calcEditOtLive = function() {
-  const otSlots = parseFloat(document.getElementById('edit-f-ot-hours').value) || 0;
+  const rawOt = String(document.getElementById('edit-f-ot-hours').value || '0').replace(',', '.');
+  const otSlots = parseFloat(rawOt) || 0;
   const empId = document.getElementById('edit-emp-id').value;
   const item = payrollList.find(p => (p.employee_id || p.id) == empId);
   const otRate = item ? (parseFloat(item.overtime_rate || item.emp_overtime_rate) || 100000) : 100000;
@@ -387,7 +389,8 @@ window.calcEditOtLive = function() {
 };
 
 window.calcAddOtLive = function() {
-  const otSlots = parseFloat(document.getElementById('add-f-ot-hours').value) || 0;
+  const rawOt = String(document.getElementById('add-f-ot-hours').value || '0').replace(',', '.');
+  const otSlots = parseFloat(rawOt) || 0;
   const select = document.getElementById('add-emp-select');
   const empId = select ? select.value : null;
   const emp = addEmployeeList.find(e => e.id == empId);
@@ -444,7 +447,8 @@ async function submitEditPayroll() {
     payload.daily_salary_rate = parseFloat(document.getElementById('edit-f-daily-rate').value) || 0;
     payload.total_days_x = parseFloat(document.getElementById('edit-f-days-x').value) || 0;
     payload.salary_by_days = parseFloat(document.getElementById('edit-f-salary-by-days').value) || 0;
-    payload.ot_count = parseFloat(document.getElementById('edit-f-ot-hours').value) || 0;
+    const rawOt = String(document.getElementById('edit-f-ot-hours').value || '0').replace(',', '.');
+    payload.ot_count = parseFloat(rawOt) || 0;
     payload.total_ot_hours = payload.ot_count * 1.5;
     payload.ot_pay = parseFloat(document.getElementById('edit-f-ot-pay').value) || 0;
     payload.boarding_pay = parseFloat(document.getElementById('edit-f-boarding-pay').value) || 0;
@@ -452,7 +456,8 @@ async function submitEditPayroll() {
     payload.lunch_allowance = parseFloat(document.getElementById('edit-f-lunch-pay').value) || 0;
     payload.travel_allowance = parseFloat(document.getElementById('edit-f-travel-pay').value) || 0;
   } else {
-    payload.total_slots = parseFloat(document.getElementById('edit-h-slots').value) || 0;
+    const rawSlots = String(document.getElementById('edit-h-slots').value || '0').replace(',', '.');
+    payload.total_slots = parseFloat(rawSlots) || 0;
     payload.hourly_rate = parseFloat(document.getElementById('edit-h-rate').value) || 120000;
     payload.salary_by_slots = parseFloat(document.getElementById('edit-h-salary-by-slots').value) || 0;
     payload.total_boarding_days = parseInt(document.getElementById('edit-h-boarding-days').value) || 0;
@@ -576,7 +581,8 @@ window.calcAddLive = function() {
     const lunch = hasLunch ? Math.round(daysX * 25000) : 0;
     totalIncome = byDays + ot + board + att + lunch + travel;
   } else {
-    const slots = parseFloat(document.getElementById('add-h-slots').value) || 0;
+    const rawSlots = String(document.getElementById('add-h-slots').value || '0').replace(',', '.');
+    const slots = parseFloat(rawSlots) || 0;
     const rate = parseFloat(document.getElementById('add-h-rate').value) || 120000;
     const board = parseFloat(document.getElementById('add-h-boarding-pay').value) || 0;
     totalIncome = Math.round(slots * rate) + board;
@@ -614,14 +620,16 @@ async function submitAddPayroll() {
     payload.base_salary = parseFloat(document.getElementById('add-f-base-salary').value) || 0;
     payload.standard_work_days = parseFloat(document.getElementById('add-f-std-days').value) || 26.0;
     payload.total_days_x = parseFloat(document.getElementById('add-f-days-x').value) || 0;
-    payload.ot_count = parseFloat(document.getElementById('add-f-ot-hours').value) || 0;
+    const rawOt = String(document.getElementById('add-f-ot-hours').value || '0').replace(',', '.');
+    payload.ot_count = parseFloat(rawOt) || 0;
     payload.total_ot_hours = payload.ot_count * 1.5;
     payload.ot_pay = parseFloat(document.getElementById('add-f-ot-pay').value) || 0;
     payload.boarding_pay = parseFloat(document.getElementById('add-f-boarding-pay').value) || 0;
     payload.attendance_allowance = parseFloat(document.getElementById('add-f-att-pay').value) || 0;
     payload.travel_allowance = parseFloat(document.getElementById('add-f-travel-pay').value) || 0;
   } else {
-    payload.total_slots = parseFloat(document.getElementById('add-h-slots').value) || 0;
+    const rawSlots = String(document.getElementById('add-h-slots').value || '0').replace(',', '.');
+    payload.total_slots = parseFloat(rawSlots) || 0;
     payload.hourly_rate = parseFloat(document.getElementById('add-h-rate').value) || 120000;
     payload.total_boarding_days = parseInt(document.getElementById('add-h-boarding-days').value) || 0;
     payload.boarding_pay = parseFloat(document.getElementById('add-h-boarding-pay').value) || 0;

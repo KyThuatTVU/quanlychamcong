@@ -153,8 +153,9 @@ class Attendance {
             // NGHIỆP VỤ BẮT BUỘC: Không tự động xác định tăng ca chỉ từ giờ vào/ra hay làm quá giờ chuẩn.
             // Chỉ tính tăng ca khi người quản lý chủ động xác nhận ($isOt = 1) hoặc nhập số ca/giờ tăng ca.
             if ($isOt) {
-                if (isset($data['ot_hours']) && $data['ot_hours'] !== '' && $data['ot_hours'] !== null && (float)$data['ot_hours'] > 0) {
-                    $otHours = round((float)$data['ot_hours'], 2);
+                $rawOt = isset($data['ot_hours']) ? trim(str_replace(',', '.', (string)$data['ot_hours'])) : '';
+                if ($rawOt !== '' && is_numeric($rawOt) && (float)$rawOt > 0) {
+                    $otHours = round((float)$rawOt, 2);
                 } else {
                     $otHours = 1.50; // Mặc định 1 ca = 1.50h khi bật Có tăng ca
                 }
@@ -248,12 +249,18 @@ class Attendance {
             $eMins = $calcMins($eIn, $eOut);
             $totMins = $mMins + $aMins + $eMins;
 
-            // Quy đổi số ca theo 90 phút (Chỉ là thời gian hiện diện tham khảo, KHÔNG tự quyết định ca tính lương)
-            $totSlots = round($totMins / 90.0, 2);
-            // SỐ CA THỰC TẾ ĐƯỢC TÍNH LƯƠNG: Căn cứ vào số ca thực tế do người quản lý xác nhận
-            $actualSlots = (isset($data['actual_slots']) && $data['actual_slots'] !== '' && $data['actual_slots'] !== null)
-                ? (float)$data['actual_slots']
+            // SỐ CA THỰC TẾ ĐƯỢC TÍNH LƯƠNG: Căn cứ vào số ca thực tế do người quản lý xác nhận (hỗ trợ cả số thập phân như 0.67 hoặc 0,67)
+            $rawActual = isset($data['actual_slots']) ? trim(str_replace(',', '.', (string)$data['actual_slots'])) : '';
+            $actualSlots = ($rawActual !== '' && is_numeric($rawActual))
+                ? round((float)$rawActual, 2)
                 : null;
+
+            // Nếu người quản lý đã nhập số ca thực tế thì Tổng ca ưu tiên lấy theo số ca thực tế; nếu chưa thì tính theo phút / 90
+            if ($actualSlots !== null) {
+                $totSlots = $actualSlots;
+            } else {
+                $totSlots = round($totMins / 90.0, 2);
+            }
             $confirmStatus = ($totMins > 0 || $hasBoarding || $actualSlots !== null) ? 'Đã xác nhận' : 'Chưa nhập';
 
             $sql = "INSERT INTO daily_attendance (

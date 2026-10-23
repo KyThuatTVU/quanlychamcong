@@ -510,7 +510,7 @@
               <tr>
                 <td class="excel-col-label">Số ca</td>
                 <td class="excel-col-val">
-                  <input type="number" step="0.5" class="slip-cell-input" id="inp-slots" value="0" oninput="calcSlipLive();">
+                  <input type="number" step="any" class="slip-cell-input" id="inp-slots" value="0" oninput="calcSlipLive();">
                 </td>
               </tr>
               <!-- 8. SỐ TIỀN (TIỀN CA / TĂNG CA) -->
@@ -888,7 +888,7 @@
       const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
       const salaryByDays = (daysX === stdDays) ? baseSalary : Math.round(dailyRate * daysX);
 
-      const slots = parseFloat(document.getElementById('inp-slots').value) || 0;
+      const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
       const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
       const att = parseMoney(document.getElementById('inp-attendance').value);
       const lunch = parseMoney(document.getElementById('inp-lunch').value);
@@ -988,7 +988,7 @@
       const baseSalary = parseMoney(document.getElementById('inp-base-salary').value);
       const dailyRate = parseMoney(document.getElementById('disp-daily-rate').textContent);
       const daysX = parseFloat(document.getElementById('inp-days-x').value) || 0;
-      const slots = parseFloat(document.getElementById('inp-slots').value) || 0;
+      const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
       const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
       const att = parseMoney(document.getElementById('inp-attendance').value);
       const lunch = parseMoney(document.getElementById('inp-lunch').value);

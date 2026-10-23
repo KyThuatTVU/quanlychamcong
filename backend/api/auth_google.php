@@ -15,8 +15,13 @@ if ($action === 'get_client_id') {
     ]);
 }
 
-// 2. LƯU CLIENT ID GOOGLE
+// 2. LƯU CLIENT ID GOOGLE (Chỉ SUPER_ADMIN)
 if ($action === 'save_client_id') {
+    $currentUser = AuthHelper::getCurrentUser();
+    if (!$currentUser || ($currentUser['role'] ?? '') !== 'SUPER_ADMIN') {
+        jsonResponse('error', null, 'Bạn không có quyền chỉnh sửa cấu hình Google OAuth', 403);
+    }
+
     $input = getJsonInput();
     $newClientId = trim($input['client_id'] ?? '');
     if (empty($newClientId)) {
@@ -36,8 +41,13 @@ if ($action === 'logout') {
     jsonResponse('success', null, 'Đã đăng xuất thành công');
 }
 
-// 4. DANH SÁCH TÀI KHOẢN NGƯỜI DÙNG
+// 4. DANH SÁCH TÀI KHOẢN NGƯỜI DÙNG (Chỉ Quản trị viên mới xem được)
 if ($action === 'get_users') {
+    $currentUser = AuthHelper::getCurrentUser();
+    if (!$currentUser || ($currentUser['role'] ?? '') !== 'SUPER_ADMIN') {
+        jsonResponse('error', null, 'Bạn không có quyền truy cập danh sách tài khoản', 403);
+    }
+
     try {
         $userModel = new User();
         $users = $userModel->getAll();
@@ -47,41 +57,78 @@ if ($action === 'get_users') {
     }
 }
 
-// 5. THÊM TÀI KHOẢN GOOGLE TIỀN ỦY QUYỀN
+// 5. THÊM TÀI KHOẢN MỚI (Hỗ trợ cả Mật khẩu và Google ID, chỉ SUPER_ADMIN)
 if ($action === 'add_user') {
-    $input = getJsonInput();
-    $email = strtolower(trim($input['email'] ?? ''));
-    $name = trim($input['name'] ?? '');
-    $role = trim($input['role'] ?? 'SUPER_ADMIN');
-
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        jsonResponse('error', null, 'Email Google không hợp lệ', 400);
+    $currentUser = AuthHelper::getCurrentUser();
+    if (!$currentUser || ($currentUser['role'] ?? '') !== 'SUPER_ADMIN') {
+        jsonResponse('error', null, 'Chỉ Quản Trị Viên mới có quyền thêm tài khoản người dùng', 403);
     }
 
+    $input = getJsonInput();
     try {
-        $db = Database::getConnection();
-        $check = $db->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
-        $check->execute([':email' => $email]);
-        if ($check->fetch()) {
-            jsonResponse('error', null, 'Email này đã tồn tại trong hệ thống', 400);
-        }
-
-        $ins = $db->prepare("
-            INSERT INTO users (email, name, role, status, created_at)
-            VALUES (:email, :name, :role, 'ACTIVE', NOW())
-        ");
-        $ins->execute([
-            ':email' => $email,
-            ':name' => $name ?: explode('@', $email)[0],
-            ':role' => $role
-        ]);
-        jsonResponse('success', ['id' => $db->lastInsertId()], 'Đã thêm tài khoản Google thành công');
+        $userModel = new User();
+        $newUser = $userModel->createAccount($input, $currentUser);
+        jsonResponse('success', $newUser, 'Đã tạo tài khoản thành công');
     } catch (Throwable $e) {
-        jsonResponse('error', null, 'Lỗi thêm tài khoản: ' . $e->getMessage(), 500);
+        jsonResponse('error', null, $e->getMessage(), 400);
     }
 }
 
-// 6. XỬ LÝ ĐĂNG NHẬP (LOGIN)
+// 6. XÓA TÀI KHOẢN (Chỉ SUPER_ADMIN, không thể xóa Admin)
+if ($action === 'delete_user') {
+    $currentUser = AuthHelper::getCurrentUser();
+    if (!$currentUser || ($currentUser['role'] ?? '') !== 'SUPER_ADMIN') {
+        jsonResponse('error', null, 'Bạn không có quyền xóa tài khoản', 403);
+    }
+
+    $input = getJsonInput();
+    $userId = (int)($input['id'] ?? ($_GET['id'] ?? 0));
+    if (!$userId) {
+        jsonResponse('error', null, 'Thiếu ID tài khoản cần xóa', 400);
+    }
+
+    try {
+        $userModel = new User();
+        $userModel->deleteUser($userId, $currentUser);
+        jsonResponse('success', ['id' => $userId], 'Đã xóa tài khoản thành công');
+    } catch (Throwable $e) {
+        jsonResponse('error', null, $e->getMessage(), 400);
+    }
+}
+
+// 7. ĐĂNG NHẬP BẰNG TÊN ĐĂNG NHẬP / EMAIL VÀ MẬT KHẨU
+if ($action === 'login_password') {
+    $input = getJsonInput();
+    $login = trim($input['login'] ?? ($input['email'] ?? ($input['username'] ?? '')));
+    $password = trim($input['password'] ?? '');
+
+    if (empty($login) || empty($password)) {
+        jsonResponse('error', null, 'Vui lòng nhập tên đăng nhập / email và mật khẩu', 400);
+    }
+
+    try {
+        $userModel = new User();
+        $user = $userModel->authenticate($login, $password);
+
+        if (!$user) {
+            jsonResponse('error', null, 'Tên đăng nhập hoặc mật khẩu không chính xác', 401);
+        }
+
+        if (($user['status'] ?? '') === 'BLOCKED') {
+            jsonResponse('error', null, 'Tài khoản của bạn đã bị khóa', 403);
+        }
+
+        AuthHelper::setCurrentUser($user);
+        jsonResponse('success', [
+            'user' => $user,
+            'session_id' => session_id()
+        ], 'Đăng nhập thành công');
+    } catch (Throwable $e) {
+        jsonResponse('error', null, 'Lỗi đăng nhập: ' . $e->getMessage(), 500);
+    }
+}
+
+// 8. XỬ LÝ ĐĂNG NHẬP GOOGLE HOẶC DEV TEST
 $input = getJsonInput();
 $credential = $input['credential'] ?? '';
 
@@ -90,6 +137,7 @@ if (!empty($input['is_dev_test'])) {
     $devUser = [
         'id' => 1,
         'google_id' => 'dev_admin_happykids',
+        'username' => 'admin',
         'email' => 'admin@happykids.edu.vn',
         'name' => 'Quản Trị Viên HappyKids',
         'avatar' => 'https://ui-avatars.com/api/?name=HappyKids+Admin&background=1B365D&color=fff',
@@ -127,6 +175,6 @@ try {
         'user' => $user,
         'session_id' => session_id()
     ], 'Đăng nhập Google thành công');
-} catch (Exception $e) {
-    jsonResponse('error', null, 'Lỗi hệ thống khi đăng nhập: ' . $e->getMessage(), 500);
+} catch (Throwable $e) {
+    jsonResponse('error', null, $e->getMessage(), 403);
 }

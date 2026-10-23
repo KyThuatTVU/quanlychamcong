@@ -1,12 +1,37 @@
 <?php
 /**
  * CẤU HÌNH KẾT NỐI CƠ SỞ DỮ LIỆU MYSQL / MARIADB (PDO)
- * Tương thích tốt với XAMPP localhost và tất cả các Web Hosting miễn phí (InfinityFree, 000webhost, v.v.)
+ * Tự động nhận diện môi trường: Byethost Hosting hoặc XAMPP Localhost
  */
 
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'happykids_hrm');
-define('DB_USER', getenv('DB_USER') ?: 'root');
+// Kiểm tra xem website đang chạy trên hosting Byethost hay Localhost
+$hostName = $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
+$isByethost = (
+    strpos($hostName, 'byethost') !== false ||
+    strpos($hostName, 'quanlychamcong') !== false ||
+    getenv('BYETHOST_ENV') === 'true'
+);
+
+if ($isByethost) {
+    // ==========================================
+    // 1. CẤU HÌNH TRÊN HOSTING BYETHOST
+    // ==========================================
+    define('DB_HOST', 'sql107.byethost13.com');
+    define('DB_NAME', 'b13_43251152_happykids_hrm');
+    define('DB_USER', 'b13_43251152');
+    
+    // Mật khẩu đăng nhập vPanel / MySQL trên Byethost
+    define('DB_PASS', '123456');
+} else {
+    // ==========================================
+    // 2. CẤU HÌNH CHẠY CỤC BỘ TRÊN XAMPP (LOCALHOST)
+    // ==========================================
+    define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+    define('DB_NAME', getenv('DB_NAME') ?: 'happykids_hrm');
+    define('DB_USER', getenv('DB_USER') ?: 'root');
+    define('DB_PASS', getenv('DB_PASS') ?: '');
+}
+
 define('DB_CHARSET', 'utf8mb4');
 
 class Database {
@@ -22,8 +47,10 @@ class Database {
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
             ];
 
-            // Tự động thử mật khẩu được cấu hình hoặc mật khẩu rỗng (chuẩn XAMPP)
             $passwords = [];
+            if (defined('DB_PASS') && DB_PASS !== '') {
+                $passwords[] = DB_PASS;
+            }
             if (getenv('DB_PASS') !== false) {
                 $passwords[] = getenv('DB_PASS');
             }
@@ -42,7 +69,7 @@ class Database {
             }
 
             if (!$connected && $lastEx) {
-                throw $lastEx;
+                throw new Exception("Lỗi kết nối CSDL (" . DB_HOST . "): " . $lastEx->getMessage());
             }
         }
         return self::$instance;

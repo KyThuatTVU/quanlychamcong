@@ -301,8 +301,8 @@ function renderDailyFixedTable(employees) {
         </td>
 
         <td>
-          <input type="number" step="0.5" min="0" class="cell-input-number" id="in-othours-${emp.id}" 
-                 value="${otHoursVal > 0 ? (otHoursVal / 1.5).toFixed(1).replace(/\.0$/, '') : ''}" 
+          <input type="text" class="cell-input-number" id="in-othours-${emp.id}" 
+                 value="${otHoursVal > 0 ? (otHoursVal / 1.5).toFixed(2).replace(/\.?0+$/, '') : ''}" 
                  placeholder="0" 
                  title="Số ca tăng ca (1 ca = 1.5h, 2 ca = 3.0h)"
                  onchange="onFixedOtHoursChange(${emp.id})"
@@ -362,7 +362,8 @@ window.onFixedOtToggle = function(empId) {
 // Gõ số giờ tăng ca thủ công
 window.onFixedOtHoursChange = function(empId) {
   const otInput = document.getElementById(`in-othours-${empId}`);
-  const otHours = parseFloat(otInput.value || 0);
+  const otRaw = String(otInput.value || '').trim().replace(',', '.');
+  const otHours = parseFloat(otRaw || 0);
   const otSel = document.getElementById(`sel-ot-${empId}`);
   const symSel = document.getElementById(`sel-sym-${empId}`);
   const row = document.getElementById(`fixed-row-${empId}`);
@@ -480,11 +481,13 @@ function renderDailyHourlyTable(employees) {
     const tmins = att.evening_minutes || 0;
 
     const totMins = att.total_minutes || 0;
-    const totSlots = att.total_slots || 0;
     const actualSlots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') ? att.actual_slots : '';
+    // Nếu có số ca thực tế do quản lý nhập thì Tổng ca ưu tiên hiển thị theo số ca thực tế, ngược lại lấy theo phút / 90
+    const rawActualNum = (actualSlots !== '' && !isNaN(parseFloat(actualSlots))) ? parseFloat(actualSlots) : null;
+    const totSlots = (rawActualNum !== null) ? rawActualNum : (att.total_slots || 0);
     const note = att.notes || '';
 
-    const isEntered = Boolean(sin || sout || cin || cout || tin || tout || totMins > 0);
+    const isEntered = Boolean(sin || sout || cin || cout || tin || tout || totMins > 0 || rawActualNum !== null);
     const rowClass = isEntered ? '' : 'row-unentered'; // Hàng chưa nhập tô đỏ y hệt ảnh 2
     const confirmStatus = att.confirmation_status || (isEntered ? 'Đã xác nhận' : 'Chưa nhập');
 
@@ -513,7 +516,7 @@ function renderDailyHourlyTable(employees) {
 
         <!-- TỔNG PHÚT & TỔNG CA -->
         <td id="txt-totmins-${emp.id}" style="font-weight: 700; color: var(--color-secondary);">${totMins > 0 ? totMins : '-'}</td>
-        <td id="txt-totslots-${emp.id}" style="font-weight: 700; color: var(--color-primary);">${totSlots > 0 ? parseFloat(totSlots).toFixed(1) : '-'}</td>
+        <td id="txt-totslots-${emp.id}" style="font-weight: 700; color: var(--color-primary);">${(totSlots !== '' && totSlots > 0) ? parseFloat(totSlots).toFixed(2).replace(/\.?0+$/, '') : '-'}</td>
 
         <!-- BÁN TRÚ (BT) -->
         <td>
@@ -535,9 +538,10 @@ function renderDailyHourlyTable(employees) {
 
         <!-- 👉 SỐ CA THỰC TẾ (CHỈ TÍNH LƯƠNG KHI NGƯỜI QUẢN LÝ XÁC NHẬN VÀO ĐÂY) -->
         <td style="background: #ECFEFF !important;">
-          <input type="number" step="0.5" class="cell-input-number" id="h-actslots-${emp.id}" 
-                 value="${actualSlots !== '' ? parseFloat(actualSlots).toFixed(1).replace(/\.0$/, '') : ''}" 
-                 placeholder="0.0" title="Nhập số ca thực tế được tính lương do người quản lý xác nhận" 
+          <input type="text" class="cell-input-number" id="h-actslots-${emp.id}" 
+                 value="${(actualSlots !== '' && actualSlots !== null) ? parseFloat(actualSlots).toFixed(2).replace(/\.?0+$/, '') : ''}" 
+                 placeholder="0.0" title="Nhập số ca thực tế (ví dụ: 1, 0.67, 1.5)" 
+                 oninput="onActualSlotsInput(${emp.id})"
                  onchange="saveSingleDailyHourly(${emp.id})">
         </td>
       </tr>
@@ -546,6 +550,34 @@ function renderDailyHourlyTable(employees) {
 
   tbody.innerHTML = html;
 }
+
+// Cập nhật ngay Tổng ca khi gõ vào Số ca thực tế
+window.onActualSlotsInput = function(empId) {
+  const actInput = document.getElementById(`h-actslots-${empId}`);
+  const totSlotsEl = document.getElementById(`txt-totslots-${empId}`);
+  if (!actInput || !totSlotsEl) return;
+
+  const rawVal = String(actInput.value || '').trim().replace(',', '.');
+  const row = document.getElementById(`hourly-row-${empId}`);
+  const confirmEl = document.getElementById(`txt-hconfirm-${empId}`);
+
+  if (rawVal !== '' && !isNaN(parseFloat(rawVal))) {
+    const num = parseFloat(rawVal);
+    totSlotsEl.textContent = num.toFixed(2).replace(/\.?0+$/, '');
+    if (row) row.classList.remove('row-unentered');
+    if (confirmEl) confirmEl.innerHTML = `<span class="badge-excel-confirmed">Đã xác nhận</span>`;
+  } else {
+    // Nếu xóa trống thì quay về tính theo phút / 90
+    const rawTotMins = parseInt(document.getElementById(`txt-totmins-${empId}`)?.textContent) || 0;
+    const calcSlots = rawTotMins > 0 ? Math.round((rawTotMins / 90.0) * 100) / 100 : 0;
+    totSlotsEl.textContent = calcSlots > 0 ? calcSlots.toFixed(2).replace(/\.?0+$/, '') : '-';
+    const hasBt = document.getElementById(`h-bt-${empId}`)?.value === '1';
+    if (rawTotMins <= 0 && !hasBt) {
+      if (row) row.classList.add('row-unentered');
+      if (confirmEl) confirmEl.innerHTML = `<span class="badge-excel-unentered">Chưa nhập</span>`;
+    }
+  }
+};
 
 // Tự động tính toán khi nhập các ca sáng/chiều/tối
 window.onHourlyInputChange = function(empId) {
@@ -574,8 +606,15 @@ window.onHourlyInputChange = function(empId) {
   document.getElementById(`txt-totmins-${empId}`).textContent = totMins > 0 ? totMins : '-';
 
   // Quy đổi số ca: 90 phút = 1 ca
-  const totSlots = totMins > 0 ? Math.round((totMins / 90.0) * 10) / 10 : 0;
-  document.getElementById(`txt-totslots-${empId}`).textContent = totSlots > 0 ? totSlots.toFixed(1) : '-';
+  const calcSlots = totMins > 0 ? Math.round((totMins / 90.0) * 100) / 100 : 0;
+  
+  // Nếu đã có Số ca thực tế thì Tổng ca ưu tiên lấy Số ca thực tế
+  const actVal = String(document.getElementById(`h-actslots-${empId}`)?.value || '').trim().replace(',', '.');
+  if (actVal !== '' && !isNaN(parseFloat(actVal))) {
+    document.getElementById(`txt-totslots-${empId}`).textContent = parseFloat(actVal).toFixed(2).replace(/\.?0+$/, '');
+  } else {
+    document.getElementById(`txt-totslots-${empId}`).textContent = calcSlots > 0 ? calcSlots.toFixed(2).replace(/\.?0+$/, '') : '-';
+  }
 
   const row = document.getElementById(`hourly-row-${empId}`);
   const actInput = document.getElementById(`h-actslots-${empId}`);
@@ -600,10 +639,10 @@ async function saveSingleDailyFixed(empId) {
   const tin = normalizeTime24(document.getElementById(`in-tin-${empId}`).value);
   const tout = normalizeTime24(document.getElementById(`in-tout-${empId}`).value);
   const isOt = parseInt(document.getElementById(`sel-ot-${empId}`).value);
-  const otVal = document.getElementById(`in-othours-${empId}`)?.value;
+  const otVal = String(document.getElementById(`in-othours-${empId}`)?.value || '').trim().replace(',', '.');
   const sym = document.getElementById(`sel-sym-${empId}`).value;
 
-  const otSlots = otVal !== '' && otVal !== null ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
+  const otSlots = otVal !== '' && otVal !== null && !isNaN(parseFloat(otVal)) ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
   const otHours = otSlots * 1.5;
 
   const payload = {
@@ -632,8 +671,9 @@ async function saveSingleDailyHourly(empId) {
   const tout = normalizeTime24(document.getElementById(`h-tout-${empId}`).value);
   const hasBt = parseInt(document.getElementById(`h-bt-${empId}`)?.value || '0');
   const note = document.getElementById(`h-note-${empId}`).value.trim();
-  const actVal = document.getElementById(`h-actslots-${empId}`)?.value.trim();
+  const actVal = String(document.getElementById(`h-actslots-${empId}`)?.value || '').trim().replace(',', '.');
   const actSlots = (actVal !== '' && actVal !== null && !isNaN(parseFloat(actVal))) ? parseFloat(actVal) : null;
+  onActualSlotsInput(empId);
 
   const payload = {
     employee_id: empId,
@@ -665,9 +705,9 @@ async function saveAllDailyRecords() {
       const tin = normalizeTime24(document.getElementById(`in-tin-${emp.id}`)?.value);
       const tout = normalizeTime24(document.getElementById(`in-tout-${emp.id}`)?.value);
       const isOt = parseInt(document.getElementById(`sel-ot-${emp.id}`)?.value || '0');
-      const otVal = document.getElementById(`in-othours-${emp.id}`)?.value;
+      const otVal = String(document.getElementById(`in-othours-${emp.id}`)?.value || '').trim().replace(',', '.');
       const sym = document.getElementById(`sel-sym-${emp.id}`)?.value || '-';
-      const otSlots = otVal !== '' && otVal !== null ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
+      const otSlots = otVal !== '' && otVal !== null && !isNaN(parseFloat(otVal)) ? parseFloat(otVal) : (isOt ? 1.0 : 0.0);
       const otHours = otSlots * 1.5;
       batch.push({
         employee_id: emp.id,
@@ -689,7 +729,7 @@ async function saveAllDailyRecords() {
       const tout = normalizeTime24(document.getElementById(`h-tout-${emp.id}`)?.value);
       const hasBt = parseInt(document.getElementById(`h-bt-${emp.id}`)?.value || '0');
       const note = document.getElementById(`h-note-${emp.id}`)?.value.trim();
-      const actVal = document.getElementById(`h-actslots-${emp.id}`)?.value.trim();
+      const actVal = String(document.getElementById(`h-actslots-${emp.id}`)?.value || '').trim().replace(',', '.');
       const actSlots = (actVal !== '' && actVal !== null && !isNaN(parseFloat(actVal))) ? parseFloat(actVal) : null;
       batch.push({
         employee_id: emp.id,
@@ -809,14 +849,16 @@ function renderMatrixTable(data) {
         }
       } else {
         if (att) {
-          // CHỈ TÍNH THEO SỐ CA THỰC TẾ ĐƯỢC XÁC NHẬN (actual_slots)
-          const slots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') ? parseFloat(att.actual_slots) : 0;
+          // CHỈ TÍNH THEO SỐ CA THỰC TẾ ĐƯỢC XÁC NHẬN (actual_slots, hỗ trợ số thập phân như 0.67 hoặc 0,67)
+          const rawSlots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') ? parseFloat(att.actual_slots) : 0;
+          const slots = Math.round(rawSlots * 100) / 100;
+          const slotsFormatted = slots > 0 ? slots.toFixed(2).replace(/\.?0+$/, '') : '0';
           const hasBt = parseInt(att.has_boarding || 0) === 1;
           if (slots > 0 && hasBt) {
-            cellText = `${slots}+BT`;
+            cellText = `${slotsFormatted}+BT`;
             cellClass = 'cell-tc';
           } else if (slots > 0) {
-            cellText = `${slots}`;
+            cellText = `${slotsFormatted}`;
             cellClass = 'cell-x';
           } else if (hasBt) {
             cellText = 'BT';
@@ -843,7 +885,7 @@ function renderMatrixTable(data) {
       `;
     } else {
       summaryCols = `
-        <td style="font-weight: 700; color: var(--color-accent);">${rowTotalSlots} ca</td>
+        <td style="font-weight: 700; color: var(--color-accent);">${rowTotalSlots > 0 ? (Math.round(rowTotalSlots * 100) / 100).toFixed(2).replace(/\.?0+$/, '') : 0} ca</td>
         <td style="font-weight: 700; color: var(--color-primary);">${rowBoardingCount > 0 ? rowBoardingCount + ' buổi' : '-'}</td>
       `;
     }

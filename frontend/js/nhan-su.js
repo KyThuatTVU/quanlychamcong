@@ -452,7 +452,6 @@ async function saveEmployee() {
   } else {
     res = await api.post('employees.php', payload);
   }
-  }
 
   if (res.status === 'success') {
     utils.showToast(id ? 'Cập nhật thành công!' : 'Thêm giáo viên mới thành công!', 'success');

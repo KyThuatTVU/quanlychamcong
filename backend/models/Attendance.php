@@ -126,20 +126,11 @@ class Attendance {
             $isOt = !empty($data['is_overtime']) ? 1 : 0;
             $notes = $data['notes'] ?? '';
 
-            // Tính phút trễ
+            // Tính thời gian làm và phút trễ (theo nguyên tắc BÙ QUA SỚT LẠI:
+            // Nếu vào trễ nhưng về muộn hơn và tổng thời gian làm việc >= ca quy định thì KHÔNG tính trễ).
             $lateMinutes = 0;
-            if ($timeIn && !empty($emp['default_time_in'])) {
-                $secIn = strtotime("1970-01-01 $timeIn");
-                $secDefIn = strtotime("1970-01-01 " . $emp['default_time_in']);
-                if ($secIn > $secDefIn) {
-                    $lateMinutes = (int)round(($secIn - $secDefIn) / 60);
-                }
-            }
-
-            // Tính số giờ làm và tăng ca
-            $otHours = 0.0;
             $workedHours = 0.0;
-            $stdHours = (float)($emp['standard_hours'] ?: 8.0);
+            $diffMins = 0;
 
             if ($timeIn && $timeOut) {
                 $secIn = strtotime("1970-01-01 $timeIn");
@@ -147,8 +138,41 @@ class Attendance {
                 if ($secOut < $secIn) {
                     $secOut += 86400; // Qua đêm
                 }
-                $workedHours = ($secOut - $secIn) / 3600.0;
+                $diffMins = (int)round(($secOut - $secIn) / 60);
+                $workedHours = $diffMins / 60.0;
+
+                // Xác định thời lượng ca quy định (phút)
+                $reqMins = 0;
+                if (!empty($emp['default_time_in']) && !empty($emp['default_time_out'])) {
+                    $secDefIn = strtotime("1970-01-01 " . $emp['default_time_in']);
+                    $secDefOut = strtotime("1970-01-01 " . $emp['default_time_out']);
+                    if ($secDefOut < $secDefIn) $secDefOut += 86400;
+                    $reqMins = (int)round(($secDefOut - $secDefIn) / 60);
+                } elseif (!empty($emp['standard_hours']) && (float)$emp['standard_hours'] > 0) {
+                    $reqMins = (int)round((float)$emp['standard_hours'] * 60);
+                } else {
+                    $reqMins = 480; // Mặc định 8h
+                }
+
+                // Nếu tổng thời gian làm >= ca quy định thì = 0p (bù trừ thỏa đáng)
+                // Chỉ tính trễ khi tổng thời gian làm bị THIẾU so với ca quy định
+                if ($diffMins < $reqMins) {
+                    $lateMinutes = $reqMins - $diffMins;
+                } else {
+                    $lateMinutes = 0;
+                }
+            } elseif ($timeIn && !empty($emp['default_time_in'])) {
+                // Chỉ mới quẹt giờ vào, chưa có giờ ra: tạm so với giờ vào quy định
+                $secIn = strtotime("1970-01-01 $timeIn");
+                $secDefIn = strtotime("1970-01-01 " . $emp['default_time_in']);
+                if ($secIn > $secDefIn) {
+                    $lateMinutes = (int)round(($secIn - $secDefIn) / 60);
+                }
             }
+
+            // Tính tăng ca
+            $otHours = 0.0;
+            $stdHours = (float)($emp['standard_hours'] ?: 8.0);
 
             // NGHIỆP VỤ BẮT BUỘC: Không tự động xác định tăng ca chỉ từ giờ vào/ra hay làm quá giờ chuẩn.
             // Chỉ tính tăng ca khi người quản lý chủ động xác nhận ($isOt = 1) hoặc nhập số ca/giờ tăng ca.

@@ -500,15 +500,28 @@ window.onFixedInputChange = function(empId) {
     const mins = diffMins % 60;
     document.getElementById(`txt-duration-${empId}`).textContent = `${hours}h ${mins}p`;
 
-    // Tính đi trễ so với default_time_in (mặc định 08:00)
-    let lateMins = 0;
-    const defInStr = emp.default_time_in ? emp.default_time_in.substring(0, 5) : '08:00';
-    const [defH, defM] = defInStr.split(':').map(Number);
-    const inTotalMins = hIn * 60 + mIn;
-    const defTotalMins = defH * 60 + defM;
-    if (inTotalMins > defTotalMins) {
-      lateMins = inTotalMins - defTotalMins;
+    // Tính đi trễ theo nguyên tắc BÙ QUA SỚT LẠI:
+    // Nếu vào trễ nhưng ra muộn hơn và tổng thời gian làm việc >= ca quy định thì KHÔNG tính trễ (0p).
+    // Chỉ tính trễ khi tổng thời gian làm việc bị THIẾU so với ca quy định.
+    let reqMins = 0;
+    if (emp.default_time_in && emp.default_time_out) {
+      const [dInH, dInM] = emp.default_time_in.substring(0, 5).split(':').map(Number);
+      const [dOutH, dOutM] = emp.default_time_out.substring(0, 5).split(':').map(Number);
+      reqMins = (dOutH * 60 + dOutM) - (dInH * 60 + dInM);
+      if (reqMins < 0) reqMins += 1440;
+    } else if (emp.standard_hours && parseFloat(emp.standard_hours) > 0) {
+      reqMins = Math.round(parseFloat(emp.standard_hours) * 60);
+    } else {
+      reqMins = 480;
     }
+
+    let lateMins = 0;
+    if (diffMins < reqMins) {
+      lateMins = reqMins - diffMins;
+    } else {
+      lateMins = 0;
+    }
+
     document.getElementById(`txt-late-${empId}`).textContent = lateMins;
     document.getElementById(`txt-late-${empId}`).style.color = lateMins > 0 ? '#B91C1C' : 'inherit';
 

@@ -105,19 +105,28 @@ class Payroll {
                 $totalLateMinutes = 0;
 
                 foreach ($attendanceList as $a) {
-                    $sym = trim($a['salary_symbol'] ?? $a['work_symbol']);
-                    if (in_array($sym, ['X', 'X + TC', 'X+TC'])) {
+                    $rawWork = trim($a['work_symbol'] ?? '');
+                    $rawSal = trim($a['salary_symbol'] ?? '');
+                    $sym = ($rawWork !== '' && $rawWork !== '-') ? $rawWork : ($rawSal ?: '-');
+                    if (in_array($sym, ['X', 'X + TC', 'X+TC', 'X + CT', 'X+CT'])) {
                         $totalDaysX += 1.0;
+                    } elseif (in_array($sym, ['0.5', '0.5X', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', '0.5 + CT', '0.5+CT'])) {
+                        $totalDaysX += 0.5;
                     }
-                    $isRowOt = in_array($sym, ['X + TC', 'X+TC']) || (!empty($a['is_overtime']) && !in_array($sym, ['P', 'K', 'Thiếu', '-']));
+
+                    // TĂNG CA / CA TỐI:
+                    // Hỗ trợ cả trường hợp giáo viên nghỉ bán trú ban ngày nhưng tối vẫn đến dạy 1 ca (ký hiệu: CT, TC, P + CT, P + TC)
+                    $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
+                    $hasOtSymbol = in_array($sym, ['X + TC', 'X+TC', 'TC', 'P + TC', 'P+TC', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', 'X + CT', 'X+CT', 'CT', 'P + CT', 'P+CT', '0.5 + CT', '0.5+CT']);
+                    $isRowOt = $hasOtSymbol || (!empty($a['is_overtime']) && $otH > 0) || (!empty($a['is_overtime']) && !in_array($sym, ['P', 'K', 'Thiếu', '-']));
+
                     if ($isRowOt) {
-                        $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
                         if ($otH <= 0) {
                             $otH = 1.50; // Mặc định 1 ca = 1.50h (90 phút)
                         }
                         // Quy đổi số ca TC: 1.5h = 1 ca, 3h = 2 ca
-                        $slotsInDay = round($otH / 1.5, 1);
-                        if ($slotsInDay < 1) $slotsInDay = 1.0;
+                        $slotsInDay = round($otH / 1.5, 2);
+                        if ($slotsInDay < 0.5) $slotsInDay = 1.0;
                         $otCount += $slotsInDay;
                         $totalOtHours += $otH;
                     }

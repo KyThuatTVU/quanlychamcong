@@ -166,19 +166,19 @@ class Attendance {
 
             if ($isOt && $otHours > 0) {
                 if ($workSymbol === '-' || empty($workSymbol) || $workSymbol === 'X') {
-                    $workSymbol = 'X + TC';
+                    $workSymbol = ($timeIn && $timeOut) ? 'X + CT' : 'CT';
                 }
             } else {
-                if ($workSymbol === 'X + TC' || $workSymbol === 'X+TC') {
+                if (in_array($workSymbol, ['X + TC', 'X+TC', 'X + CT', 'X+CT'])) {
                     $workSymbol = ($timeIn && $timeOut) ? 'X' : '-';
                 } else if ($timeIn && $timeOut && ($workSymbol === '-' || empty($workSymbol))) {
                     $workSymbol = 'X';
                 }
             }
 
-            $salarySymbol = in_array($workSymbol, ['X', 'X + TC', 'P', 'K']) ? $workSymbol : '-';
+            $salarySymbol = $workSymbol;
             $otSalaryHours = ($isOt && $otHours > 0) ? $otHours : 0.0;
-            $confirmStatus = ($timeIn && $timeOut || ($isOt && $otHours > 0) || $workSymbol !== '-') ? 'Đã xác nhận' : 'Chưa nhập';
+            $confirmStatus = (($timeIn && $timeOut) || ($isOt && $otHours > 0) || !in_array($workSymbol, ['-', ''])) ? 'Đã xác nhận' : 'Chưa nhập';
 
             $sql = "INSERT INTO daily_attendance (
                 employee_id, work_date, time_in, time_out, late_minutes, is_overtime,
@@ -445,16 +445,25 @@ class Attendance {
                 $totalLateMinutes = 0;
 
                 foreach ($list as $a) {
-                    $sym = trim($a['salary_symbol'] ?? $a['work_symbol']);
-                    if (in_array($sym, ['X', 'X + TC', 'X+TC'])) {
+                    $rawWork = trim($a['work_symbol'] ?? '');
+                    $rawSal = trim($a['salary_symbol'] ?? '');
+                    $sym = ($rawWork !== '' && $rawWork !== '-') ? $rawWork : ($rawSal ?: '-');
+                    if (in_array($sym, ['X', 'X + TC', 'X+TC', 'X + CT', 'X+CT'])) {
                         $totalDaysX += 1.0;
+                    } elseif (in_array($sym, ['0.5', '0.5X', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', '0.5 + CT', '0.5+CT'])) {
+                        $totalDaysX += 0.5;
                     }
-                    $isRowOt = in_array($sym, ['X + TC', 'X+TC']) || (!empty($a['is_overtime']) && !in_array($sym, ['P', 'K', 'Thiếu', '-']));
+
+                    // TĂNG CA / CA TỐI:
+                    // Hỗ trợ cả trường hợp giáo viên nghỉ bán trú ban ngày nhưng tối vẫn đến dạy 1 ca (ký hiệu: CT, TC, P + CT, P + TC)
+                    $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
+                    $hasOtSymbol = in_array($sym, ['X + TC', 'X+TC', 'TC', 'P + TC', 'P+TC', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', 'X + CT', 'X+CT', 'CT', 'P + CT', 'P+CT', '0.5 + CT', '0.5+CT']);
+                    $isRowOt = $hasOtSymbol || (!empty($a['is_overtime']) && $otH > 0) || (!empty($a['is_overtime']) && !in_array($sym, ['P', 'K', 'Thiếu', '-']));
+
                     if ($isRowOt) {
-                        $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
                         if ($otH <= 0) $otH = 1.50;
-                        $slotsInDay = round($otH / 1.5, 1);
-                        if ($slotsInDay < 1) $slotsInDay = 1.0;
+                        $slotsInDay = round($otH / 1.5, 2);
+                        if ($slotsInDay < 0.5) $slotsInDay = 1.0;
                         $otCount += $slotsInDay;
                         $totalOtHours += $otH;
                     }

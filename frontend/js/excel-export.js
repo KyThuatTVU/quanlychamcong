@@ -629,7 +629,7 @@ const excelExporter = {
         sheet.mergeCells(5, sumColIdx, 6, sumColIdx);
         sheet.getCell(5, sumColIdx).value = 'Tổng Công (X)';
         sheet.mergeCells(5, sumColIdx + 1, 6, sumColIdx + 1);
-        sheet.getCell(5, sumColIdx + 1).value = 'Tăng Ca (h)';
+        sheet.getCell(5, sumColIdx + 1).value = 'Ca Tối / TC';
         sheet.mergeCells(5, sumColIdx + 2, 6, sumColIdx + 2);
         sheet.getCell(5, sumColIdx + 2).value = 'Trễ (phút)';
 
@@ -699,19 +699,35 @@ const excelExporter = {
 
           if (att) {
             if (salaryType === 'FIXED') {
-              const sym = String(att.salary_symbol || att.work_symbol || '').trim();
+              const sym = String((att.work_symbol && att.work_symbol !== '-') ? att.work_symbol : (att.salary_symbol || '')).trim();
               if (sym) {
                 cell.value = sym;
                 if (sym === 'X') {
                   totalX += 1;
                   cell.font = { name: S.fontFamily, size: 9.5, bold: true, color: { argb: S.colors.textMain } };
-                } else if (sym === 'X+TC' || sym === 'X + TC') {
+                } else if (['X+CT', 'X + CT', 'X+TC', 'X + TC'].includes(sym)) {
                   totalX += 1;
                   let otH = parseFloat(att.ot_salary_hours || att.ot_hours || 0);
                   if (otH <= 0) otH = 1.5;
                   totalOt += otH;
                   cell.font = { name: S.fontFamily, size: 9, bold: true, color: { argb: S.colors.darkGreen } };
                   cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
+                } else if (['CT', 'TC', 'P + CT', 'P+CT', 'P + TC', 'P+TC'].includes(sym)) {
+                  let otH = parseFloat(att.ot_salary_hours || att.ot_hours || 0);
+                  if (otH <= 0) otH = 1.5;
+                  totalOt += otH;
+                  cell.font = { name: S.fontFamily, size: 9, bold: true, color: { argb: S.colors.darkGreen } };
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
+                } else if (['0.5 + CT', '0.5+CT', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC'].includes(sym)) {
+                  totalX += 0.5;
+                  let otH = parseFloat(att.ot_salary_hours || att.ot_hours || 0);
+                  if (otH <= 0) otH = 1.5;
+                  totalOt += otH;
+                  cell.font = { name: S.fontFamily, size: 9, bold: true, color: { argb: S.colors.darkGreen } };
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECFDF5' } };
+                } else if (sym === '0.5' || sym === '0.5X') {
+                  totalX += 0.5;
+                  cell.font = { name: S.fontFamily, size: 9.5, bold: true, color: { argb: S.colors.textMain } };
                 } else if (sym === 'P') {
                   cell.font = { name: S.fontFamily, size: 9, bold: true, color: { argb: 'FFD97706' } };
                   cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };

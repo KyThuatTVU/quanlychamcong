@@ -2,12 +2,22 @@
  * LOGIC TRANG CHẤM CÔNG CHI TIẾT THEO NGÀY (EXCEL FORM) & MA TRẬN THÁNG
  */
 
-let currentBranchId = 1;
+function formatLocalDate(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+const _today = new Date();
+const _urlParams = new URLSearchParams(window.location.search);
+
+let currentBranchId = utils.getCurrentBranchId() || 1;
 let currentSalaryType = 'FIXED';
 let currentMode = 'daily'; // 'daily' hoặc 'matrix'
-let currentWorkDate = '2026-10-20'; // Mặc định ngày 20/10/2026
-let currentMonth = 10;
-let currentYear = 2026;
+let currentWorkDate = _urlParams.get('date') || formatLocalDate(_today);
+let currentMonth = _urlParams.get('month') ? parseInt(_urlParams.get('month')) : (_today.getMonth() + 1);
+let currentYear = _urlParams.get('year') ? parseInt(_urlParams.get('year')) : _today.getFullYear();
 let dailyEmployeesList = [];
 let matrixData = null;
 
@@ -106,30 +116,51 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (dateInput) {
     dateInput.value = currentWorkDate;
     dateInput.addEventListener('change', (e) => {
+      if (!e.target.value) return;
       currentWorkDate = e.target.value;
+      const [y, m] = currentWorkDate.split('-').map(Number);
+      currentYear = y;
+      currentMonth = m;
+      const selM = document.getElementById('select-month');
+      const selY = document.getElementById('select-year');
+      if (selM) selM.value = currentMonth;
+      if (selY) selY.value = currentYear;
       loadDailyAttendance();
+    });
+  }
+
+  // Điều khiển tháng / năm (Matrix View)
+  const selectMonth = document.getElementById('select-month');
+  if (selectMonth) {
+    selectMonth.value = currentMonth;
+    selectMonth.addEventListener('change', (e) => {
+      currentMonth = parseInt(e.target.value);
+      loadMatrixAttendance();
+    });
+  }
+
+  const selectYear = document.getElementById('select-year');
+  if (selectYear) {
+    selectYear.value = currentYear;
+    selectYear.addEventListener('change', (e) => {
+      currentYear = parseInt(e.target.value);
+      loadMatrixAttendance();
     });
   }
 
   document.getElementById('btn-today')?.addEventListener('click', () => {
     const today = new Date();
-    currentWorkDate = today.toISOString().split('T')[0];
-    dateInput.value = currentWorkDate;
+    currentWorkDate = formatLocalDate(today);
+    currentMonth = today.getMonth() + 1;
+    currentYear = today.getFullYear();
+    if (dateInput) dateInput.value = currentWorkDate;
+    if (selectMonth) selectMonth.value = currentMonth;
+    if (selectYear) selectYear.value = currentYear;
     loadDailyAttendance();
   });
 
   document.getElementById('btn-prev-day')?.addEventListener('click', () => changeDay(-1));
   document.getElementById('btn-next-day')?.addEventListener('click', () => changeDay(1));
-
-  // Điều khiển tháng / năm (Matrix View)
-  document.getElementById('select-month')?.addEventListener('change', (e) => {
-    currentMonth = parseInt(e.target.value);
-    loadMatrixAttendance();
-  });
-  document.getElementById('select-year')?.addEventListener('change', (e) => {
-    currentYear = parseInt(e.target.value);
-    loadMatrixAttendance();
-  });
 
   // Nút Xuất Excel Bảng Chấm Công Ma Trận
   document.getElementById('btn-export-attendance-excel')?.addEventListener('click', () => {
@@ -151,8 +182,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 function changeDay(offset) {
   const [y, m, d] = currentWorkDate.split('-').map(Number);
   const dt = new Date(y, m - 1, d + offset);
-  currentWorkDate = dt.toISOString().split('T')[0];
-  document.getElementById('input-daily-date').value = currentWorkDate;
+  currentWorkDate = formatLocalDate(dt);
+  currentMonth = dt.getMonth() + 1;
+  currentYear = dt.getFullYear();
+  const dateInput = document.getElementById('input-daily-date');
+  if (dateInput) dateInput.value = currentWorkDate;
+  const selM = document.getElementById('select-month');
+  const selY = document.getElementById('select-year');
+  if (selM) selM.value = currentMonth;
+  if (selY) selY.value = currentYear;
   loadDailyAttendance();
 }
 
@@ -167,6 +205,18 @@ function setMode(mode) {
   document.getElementById('group-filter-daily').style.display = mode === 'daily' ? 'flex' : 'none';
   document.getElementById('group-filter-matrix').style.display = mode === 'matrix' ? 'flex' : 'none';
   document.getElementById('btn-save-all-daily').style.display = mode === 'daily' ? 'inline-flex' : 'none';
+
+  if (mode === 'matrix') {
+    if (currentWorkDate) {
+      const [y, m] = currentWorkDate.split('-').map(Number);
+      currentYear = y;
+      currentMonth = m;
+    }
+    const selM = document.getElementById('select-month');
+    const selY = document.getElementById('select-year');
+    if (selM) selM.value = currentMonth;
+    if (selY) selY.value = currentYear;
+  }
 
   refreshView();
 }
@@ -248,14 +298,16 @@ function renderDailyFixedTable(employees) {
     const att = emp.attendance || {};
     const timeIn = att.time_in ? att.time_in.substring(0, 5) : '';
     const timeOut = att.time_out ? att.time_out.substring(0, 5) : '';
-    const isEntered = Boolean(timeIn && timeOut);
-    const rowClass = isEntered ? '' : 'row-unentered'; // Tô màu đỏ nếu chưa nhập giống hệt ảnh Excel
+    const isOt = att.is_overtime == 1 || (att.work_symbol && (att.work_symbol.includes('TC') || att.work_symbol.includes('CT')));
+    const hasWorkSymbol = att.work_symbol && !['-', ''].includes(att.work_symbol);
+    const isEntered = Boolean((timeIn && timeOut) || isOt || hasWorkSymbol || att.confirmation_status === 'Đã xác nhận');
+    const rowClass = isEntered ? '' : 'row-unentered'; // Hàng chưa nhập mới tô đỏ, đã nhập chuyển sang màu trắng
 
     // Tính thời gian làm việc
     let workDurationText = '-';
     let otHoursVal = att.ot_hours || 0;
     let lateMinsVal = att.late_minutes || 0;
-    if (isEntered) {
+    if (timeIn && timeOut) {
       const [hIn, mIn] = timeIn.split(':').map(Number);
       const [hOut, mOut] = timeOut.split(':').map(Number);
       let diffMins = (hOut * 60 + mOut) - (hIn * 60 + mIn);
@@ -265,8 +317,7 @@ function renderDailyFixedTable(employees) {
       workDurationText = `${hours}h ${mins}p`;
     }
 
-    const isOt = att.is_overtime == 1 || (att.work_symbol && att.work_symbol.includes('TC'));
-    const workSymbol = att.work_symbol || (isEntered ? (isOt ? 'X + TC' : 'X') : '-');
+    const workSymbol = att.work_symbol || (isEntered ? (isOt ? 'X + CT' : 'X') : '-');
     const confirmStatus = att.confirmation_status || (isEntered ? 'Đã xác nhận' : 'Chưa nhập');
 
     html += `
@@ -304,18 +355,22 @@ function renderDailyFixedTable(employees) {
           <input type="text" class="cell-input-number" id="in-othours-${emp.id}" 
                  value="${otHoursVal > 0 ? (otHoursVal / 1.5).toFixed(2).replace(/\.?0+$/, '') : ''}" 
                  placeholder="0" 
-                 title="Số ca tăng ca (1 ca = 1.5h, 2 ca = 3.0h)"
+                 title="Số ca dạy tối (1 ca = 1.5h, 2 ca = 3.0h)"
                  onchange="onFixedOtHoursChange(${emp.id})"
                  style="width: 75px; text-align: center; font-weight: 700; color: var(--color-primary); background: #EFF6FF;">
         </td>
         
         <td>
           <select class="cell-select" id="sel-sym-${emp.id}" style="font-weight: 700; color: var(--color-accent);" onchange="onFixedStatusChange(${emp.id})">
-            <option value="X" ${workSymbol === 'X' ? 'selected' : ''}>X</option>
-            <option value="X + TC" ${workSymbol === 'X + TC' ? 'selected' : ''}>X + TC</option>
-            <option value="P" ${workSymbol === 'P' ? 'selected' : ''}>P</option>
-            <option value="K" ${workSymbol === 'K' ? 'selected' : ''}>K</option>
-            <option value="Thiếu" ${workSymbol === 'Thiếu' ? 'selected' : ''}>Thiếu</option>
+            <option value="X" ${workSymbol === 'X' ? 'selected' : ''}>X (Bán trú đủ ngày)</option>
+            <option value="X + CT" ${(workSymbol === 'X + CT' || workSymbol === 'X + TC') ? 'selected' : ''}>X + CT (Bán trú + Ca tối)</option>
+            <option value="CT" ${(workSymbol === 'CT' || workSymbol === 'TC') ? 'selected' : ''}>CT (Chỉ dạy ca tối, nghỉ bán trú)</option>
+            <option value="P + CT" ${(workSymbol === 'P + CT' || workSymbol === 'P + TC') ? 'selected' : ''}>P + CT (Nghỉ phép + Dạy ca tối)</option>
+            <option value="0.5 + CT" ${(workSymbol === '0.5 + CT' || workSymbol === '0.5 + TC') ? 'selected' : ''}>0.5 + CT (Nửa ngày + Ca tối)</option>
+            <option value="0.5" ${workSymbol === '0.5' ? 'selected' : ''}>0.5 (Nửa ngày)</option>
+            <option value="P" ${workSymbol === 'P' ? 'selected' : ''}>P (Phép)</option>
+            <option value="K" ${workSymbol === 'K' ? 'selected' : ''}>K (Không phép)</option>
+            <option value="Thiếu" ${workSymbol === 'Thiếu' ? 'selected' : ''}>Thiếu (Thiếu giờ)</option>
             <option value="-" ${workSymbol === '-' ? 'selected' : ''}>-</option>
           </select>
         </td>
@@ -332,7 +387,7 @@ function renderDailyFixedTable(employees) {
   tbody.innerHTML = html;
 }
 
-// Bật / Tắt tăng ca
+// Bật / Tắt dạy ca tối
 window.onFixedOtToggle = function(empId) {
   const isOt = document.getElementById(`sel-ot-${empId}`).value === '1';
   const otInput = document.getElementById(`in-othours-${empId}`);
@@ -344,22 +399,38 @@ window.onFixedOtToggle = function(empId) {
     if (curVal <= 0) {
       otInput.value = (empId == 16) ? '2' : '1';
     }
-    symSel.value = 'X + TC';
+    const tin = document.getElementById(`in-tin-${empId}`).value;
+    const tout = document.getElementById(`in-tout-${empId}`).value;
+    if (symSel.value === 'P') {
+      symSel.value = 'P + CT';
+    } else if (symSel.value === '0.5') {
+      symSel.value = '0.5 + CT';
+    } else if (!tin && !tout) {
+      symSel.value = 'CT';
+    } else {
+      symSel.value = 'X + CT';
+    }
     row.classList.remove('row-unentered');
     document.getElementById(`txt-confirm-${empId}`).innerHTML = `<span class="badge-excel-confirmed">Đã xác nhận</span>`;
   } else {
     otInput.value = '';
-    if (symSel.value === 'X + TC') {
+    if (['X + CT', 'X + TC', 'X+CT', 'X+TC'].includes(symSel.value)) {
       const tin = document.getElementById(`in-tin-${empId}`).value;
       const tout = document.getElementById(`in-tout-${empId}`).value;
       symSel.value = (tin && tout) ? 'X' : '-';
+    } else if (['CT', 'TC'].includes(symSel.value)) {
+      symSel.value = '-';
+    } else if (['P + CT', 'P + TC', 'P+CT', 'P+TC'].includes(symSel.value)) {
+      symSel.value = 'P';
+    } else if (['0.5 + CT', '0.5 + TC', '0.5+CT', '0.5+TC'].includes(symSel.value)) {
+      symSel.value = '0.5';
     }
   }
 
   saveSingleDailyFixed(empId);
 };
 
-// Gõ số giờ tăng ca thủ công
+// Gõ số giờ / số ca tối thủ công
 window.onFixedOtHoursChange = function(empId) {
   const otInput = document.getElementById(`in-othours-${empId}`);
   const otRaw = String(otInput.value || '').trim().replace(',', '.');
@@ -370,15 +441,35 @@ window.onFixedOtHoursChange = function(empId) {
 
   if (otHours > 0) {
     otSel.value = '1';
-    symSel.value = 'X + TC';
+    const tin = document.getElementById(`in-tin-${empId}`).value;
+    const tout = document.getElementById(`in-tout-${empId}`).value;
+    if (symSel.value === 'P') {
+      symSel.value = 'P + CT';
+    } else if (symSel.value === '0.5') {
+      symSel.value = '0.5 + CT';
+    } else if (['CT', 'TC', 'P + CT', 'P + TC', '0.5 + CT', '0.5 + TC'].includes(symSel.value)) {
+      // Giữ nguyên ký hiệu
+    } else if (!tin && !tout) {
+      symSel.value = 'CT';
+    } else {
+      symSel.value = 'X + CT';
+    }
     row.classList.remove('row-unentered');
     document.getElementById(`txt-confirm-${empId}`).innerHTML = `<span class="badge-excel-confirmed">Đã xác nhận</span>`;
   } else {
     otSel.value = '0';
     otInput.value = '';
-    const tin = document.getElementById(`in-tin-${empId}`).value;
-    const tout = document.getElementById(`in-tout-${empId}`).value;
-    symSel.value = (tin && tout) ? 'X' : '-';
+    if (['X + CT', 'X + TC', 'X+CT', 'X+TC'].includes(symSel.value)) {
+      const tin = document.getElementById(`in-tin-${empId}`).value;
+      const tout = document.getElementById(`in-tout-${empId}`).value;
+      symSel.value = (tin && tout) ? 'X' : '-';
+    } else if (['CT', 'TC'].includes(symSel.value)) {
+      symSel.value = '-';
+    } else if (['P + CT', 'P + TC', 'P+CT', 'P+TC'].includes(symSel.value)) {
+      symSel.value = 'P';
+    } else if (['0.5 + CT', '0.5 + TC', '0.5+CT', '0.5+TC'].includes(symSel.value)) {
+      symSel.value = '0.5';
+    }
   }
 
   saveSingleDailyFixed(empId);
@@ -427,10 +518,16 @@ window.onFixedInputChange = function(empId) {
     if (isOtSel) {
       let curOt = parseFloat(otInput.value || 0);
       if (curOt <= 0) otInput.value = (empId == 16) ? '2' : '1';
-      symSel.value = 'X + TC';
+      if (['0.5', '0.5 + CT', '0.5 + TC'].includes(symSel.value)) {
+        symSel.value = '0.5 + CT';
+      } else {
+        symSel.value = 'X + CT';
+      }
     } else {
       otInput.value = '';
-      symSel.value = 'X';
+      if (symSel.value !== '0.5') {
+        symSel.value = 'X';
+      }
     }
 
     // Tự động lưu dòng này xuống Database
@@ -440,7 +537,13 @@ window.onFixedInputChange = function(empId) {
     if (isOtSel || curOt > 0) {
       row.classList.remove('row-unentered');
       document.getElementById(`txt-confirm-${empId}`).innerHTML = `<span class="badge-excel-confirmed">Đã xác nhận</span>`;
-      symSel.value = 'X + TC';
+      if (['P', 'P + CT', 'P + TC'].includes(symSel.value)) {
+        symSel.value = 'P + CT';
+      } else if (['0.5', '0.5 + CT', '0.5 + TC'].includes(symSel.value)) {
+        symSel.value = '0.5 + CT';
+      } else {
+        symSel.value = 'CT';
+      }
       saveSingleDailyFixed(empId);
     } else {
       row.classList.add('row-unentered');
@@ -448,12 +551,39 @@ window.onFixedInputChange = function(empId) {
       document.getElementById(`txt-duration-${empId}`).textContent = '-';
       document.getElementById(`txt-late-${empId}`).textContent = '0';
       otInput.value = '';
-      symSel.value = '-';
+      if (['X', 'X + CT', 'X + TC', 'CT', 'TC'].includes(symSel.value)) {
+        symSel.value = '-';
+      }
     }
   }
 };
 
 window.onFixedStatusChange = function(empId) {
+  const symSel = document.getElementById(`sel-sym-${empId}`);
+  const otSel = document.getElementById(`sel-ot-${empId}`);
+  const otInput = document.getElementById(`in-othours-${empId}`);
+  const row = document.getElementById(`fixed-row-${empId}`);
+  const val = symSel ? symSel.value : '';
+
+  if (['CT', 'TC', 'P + CT', 'P + TC', '0.5 + CT', '0.5 + TC', 'X + CT', 'X + TC'].includes(val)) {
+    if (otSel) otSel.value = '1';
+    let curVal = parseFloat(otInput ? (otInput.value || 0) : 0);
+    if (curVal <= 0 && otInput) {
+      otInput.value = (empId == 16) ? '2' : '1';
+    }
+    if (row) row.classList.remove('row-unentered');
+    const confirmEl = document.getElementById(`txt-confirm-${empId}`);
+    if (confirmEl) confirmEl.innerHTML = `<span class="badge-excel-confirmed">Đã xác nhận</span>`;
+  } else if (['P', 'K', 'Thiếu', '-'].includes(val)) {
+    if (otSel) otSel.value = '0';
+    if (otInput) otInput.value = '';
+    if (val === '-') {
+      if (row) row.classList.add('row-unentered');
+      const confirmEl = document.getElementById(`txt-confirm-${empId}`);
+      if (confirmEl) confirmEl.innerHTML = `<span class="badge-excel-unentered">Chưa nhập</span>`;
+    }
+  }
+
   saveSingleDailyFixed(empId);
 };
 
@@ -779,6 +909,11 @@ async function loadMatrixAttendance() {
 }
 
 function renderMatrixTable(data) {
+  const matrixTitle = document.getElementById('matrix-title');
+  if (matrixTitle) {
+    matrixTitle.textContent = `Ma trận ngày công — Tháng ${currentMonth}/${currentYear}`;
+  }
+
   const daysInMonth = data.days_in_month || 31;
   const employees = data.employees || [];
   const thead = document.getElementById('matrix-thead');
@@ -804,7 +939,7 @@ function renderMatrixTable(data) {
   }
 
   if (currentSalaryType === 'FIXED') {
-    headerHtml += `<th>Công (X)</th><th>Số ca TC</th><th>Trễ (p)</th></tr>`;
+    headerHtml += `<th>Công (X)</th><th>Ca tối / TC</th><th>Trễ (p)</th></tr>`;
   } else {
     headerHtml += `<th>Tổng ca</th><th>Bán trú</th></tr>`;
   }
@@ -831,15 +966,32 @@ function renderMatrixTable(data) {
 
       if (currentSalaryType === 'FIXED') {
         if (att) {
-          const sym = att.salary_symbol || att.work_symbol || '-';
+          const sym = (att.work_symbol && att.work_symbol !== '-') ? att.work_symbol : (att.salary_symbol || '-');
           cellText = sym;
           if (sym === 'X') {
             cellClass = 'cell-x';
             rowXCount += 1;
-          } else if (sym === 'X + TC' || sym === 'X+TC') {
+          } else if (['X + CT', 'X+CT', 'X + TC', 'X+TC'].includes(sym)) {
             cellClass = 'cell-tc';
             rowXCount += 1;
-            rowOtHours += parseFloat(att.ot_salary_hours || att.ot_hours || 0);
+            let otH = parseFloat(att.ot_salary_hours || att.ot_hours || 0);
+            if (otH <= 0) otH = 1.5;
+            rowOtHours += otH;
+          } else if (['CT', 'TC', 'P + CT', 'P+CT', 'P + TC', 'P+TC'].includes(sym)) {
+            cellClass = 'cell-tc';
+            // Không tính ngày công bán trú (0 công), không tính tiền cơm
+            let otH = parseFloat(att.ot_salary_hours || att.ot_hours || 0);
+            if (otH <= 0) otH = 1.5;
+            rowOtHours += otH;
+          } else if (['0.5 + CT', '0.5+CT', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC'].includes(sym)) {
+            cellClass = 'cell-tc';
+            rowXCount += 0.5;
+            let otH = parseFloat(att.ot_salary_hours || att.ot_hours || 0);
+            if (otH <= 0) otH = 1.5;
+            rowOtHours += otH;
+          } else if (sym === '0.5' || sym === '0.5X') {
+            cellClass = 'cell-x';
+            rowXCount += 0.5;
           } else if (sym === 'P') {
             cellClass = 'cell-leave';
           } else if (sym === 'K' || sym === 'Thiếu') {
@@ -879,8 +1031,8 @@ function renderMatrixTable(data) {
     let summaryCols = '';
     if (currentSalaryType === 'FIXED') {
       summaryCols = `
-        <td style="font-weight: 700; color: var(--color-accent);">${rowXCount}</td>
-        <td style="font-weight: 700; color: var(--color-primary);">${rowOtHours > 0 ? (rowOtHours / 1.5) + ' ca' : '-'}</td>
+        <td style="font-weight: 700; color: var(--color-accent);">${Math.round(rowXCount * 10) / 10}</td>
+        <td style="font-weight: 700; color: var(--color-primary);">${rowOtHours > 0 ? (Math.round((rowOtHours / 1.5) * 100) / 100) + ' ca' : '-'}</td>
         <td style="font-weight: 600; color: ${rowLateMins > 0 ? '#B91C1C' : 'inherit'};">${rowLateMins > 0 ? rowLateMins + 'p' : '-'}</td>
       `;
     } else {

@@ -128,32 +128,9 @@ if ($action === 'login_password') {
     }
 }
 
-// 8. XỬ LÝ ĐĂNG NHẬP GOOGLE HOẶC DEV TEST
+// 8. XỬ LÝ ĐĂNG NHẬP GOOGLE OAUTH
 $input = getJsonInput();
 $credential = $input['credential'] ?? '';
-
-// Chế độ DEV TEST (cho phép đăng nhập nhanh tài khoản quản trị khi đang thử nghiệm cục bộ)
-if (!empty($input['is_dev_test'])) {
-    $devUser = [
-        'id' => 1,
-        'google_id' => 'dev_admin_happykids',
-        'username' => 'admin',
-        'email' => 'admin@happykids.edu.vn',
-        'name' => 'Quản Trị Viên HappyKids',
-        'avatar' => 'https://ui-avatars.com/api/?name=HappyKids+Admin&background=1B365D&color=fff',
-        'role' => 'SUPER_ADMIN',
-        'branch_id' => 1
-    ];
-    try {
-        $userModel = new User();
-        $user = $userModel->findOrCreateFromGoogle($devUser);
-        AuthHelper::setCurrentUser($user);
-        jsonResponse('success', $user, 'Đăng nhập chế độ thử nghiệm thành công');
-    } catch (Throwable $e) {
-        AuthHelper::setCurrentUser($devUser);
-        jsonResponse('success', $devUser, 'Đăng nhập chế độ thử nghiệm (Offline Mode) thành công');
-    }
-}
 
 if (empty($credential)) {
     jsonResponse('error', null, 'Thiếu thông tin xác thực Google (credential)', 400);

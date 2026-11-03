@@ -2,10 +2,13 @@
  * LOGIC TRANG TÍNH LƯƠNG & XUẤT BẢNG LƯƠNG — HỖ TRỢ ĐẦY ĐỦ THÊM, XÓA, SỬA
  */
 
-let currentBranchId = 1;
-let currentSalaryType = 'FIXED';
-let currentMonth = 10;
-let currentYear = 2026;
+const _now = new Date();
+const _urlParams = new URLSearchParams(window.location.search);
+
+let currentBranchId = utils.getCurrentBranchId() || 1;
+let currentSalaryType = _urlParams.get('type') || 'FIXED';
+let currentMonth = _urlParams.get('month') ? parseInt(_urlParams.get('month')) : (_now.getMonth() + 1);
+let currentYear = _urlParams.get('year') ? parseInt(_urlParams.get('year')) : _now.getFullYear();
 let payrollList = [];
 let allBranchEmployees = [];
 
@@ -24,14 +27,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  document.getElementById('select-month')?.addEventListener('change', (e) => {
-    currentMonth = parseInt(e.target.value);
-    loadPayroll();
-  });
-  document.getElementById('select-year')?.addEventListener('change', (e) => {
-    currentYear = parseInt(e.target.value);
-    loadPayroll();
-  });
+  const selMonth = document.getElementById('select-month');
+  if (selMonth) {
+    selMonth.value = currentMonth;
+    selMonth.addEventListener('change', (e) => {
+      currentMonth = parseInt(e.target.value);
+      loadPayroll();
+    });
+  }
+
+  const selYear = document.getElementById('select-year');
+  if (selYear) {
+    selYear.value = currentYear;
+    selYear.addEventListener('change', (e) => {
+      currentYear = parseInt(e.target.value);
+      loadPayroll();
+    });
+  }
 
   document.getElementById('tab-fixed')?.addEventListener('click', () => switchTab('FIXED'));
   document.getElementById('tab-hourly')?.addEventListener('click', () => switchTab('HOURLY'));

@@ -306,12 +306,72 @@
           </div>
 
           <!-- SECTION 4: GHI CHÚ & NHẬN XÉT CỦA GIÁM ĐỐC -->
-          <div class="form-section" style="margin-bottom: 0;">
+          <div class="form-section">
             <div class="form-section-title">
               <i data-lucide="message-square"></i> 4. Đánh Giá & Ghi Chú Của Giám Đốc
             </div>
             <div class="form-group" style="margin-bottom: 0;">
               <input type="text" class="form-control" id="emp-form-notes" placeholder="Nhận xét chuyên môn, ưu điểm, lưu ý công tác (tự động đưa vào bảng lương)...">
+            </div>
+          </div>
+
+          <!-- SECTION 5: CẤP TÀI KHOẢN ĐĂNG NHẬP HỆ THỐNG -->
+          <div class="form-section" style="margin-bottom: 0; background: #F8FAFC; border: 1px dashed var(--color-border); border-radius: var(--radius-md); padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div class="form-section-title" style="margin-bottom: 0; color: var(--color-primary);">
+                <i data-lucide="key-round"></i> 5. Cấp Tài Khoản Đăng Nhập Hệ Thống
+              </div>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--color-primary); user-select: none;">
+                <input type="checkbox" id="emp-form-has-account" style="width: 17px; height: 17px; accent-color: var(--color-accent); cursor: pointer;">
+                <span>Cấp / Kích hoạt tài khoản đăng nhập</span>
+              </label>
+            </div>
+            
+            <div id="section-account-fields" style="display: none; padding-top: 12px; border-top: 1px solid var(--color-border);">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Tên đăng nhập (Username) <span class="required">*</span></label>
+                  <input type="text" class="form-control" id="emp-acc-username" placeholder="VD: gv001 hoặc khanhvy" style="font-weight: 600; color: var(--color-primary);">
+                  <span class="form-hint">Dùng để đăng nhập vào hệ thống HRM</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Địa chỉ Email (Tùy chọn)</label>
+                  <input type="email" class="form-control" id="emp-acc-email" placeholder="VD: gv001@happykids.edu.vn">
+                  <span class="form-hint">Dùng để đăng nhập hoặc liên kết Google</span>
+                </div>
+              </div>
+
+              <div class="grid-2" style="margin-top: 10px;">
+                <div class="form-group">
+                  <label class="form-label">Mật khẩu đăng nhập</label>
+                  <div style="position: relative;">
+                    <input type="text" class="form-control" id="emp-acc-password" placeholder="Mặc định: 123456" style="padding-right: 32px;">
+                    <i data-lucide="lock" style="position: absolute; right: 10px; top: 10px; width: 16px; height: 16px; color: var(--color-text-secondary);"></i>
+                  </div>
+                  <span class="form-hint" id="emp-acc-pwd-hint">Thêm mới: Mặc định là <strong>123456</strong>. Sửa: Để trống nếu không muốn đổi.</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phân quyền tài khoản (Vai trò) <span class="required">*</span></label>
+                  <select class="form-control" id="emp-acc-role" style="font-weight: 600;">
+                    <option value="STAFF" selected>Nhân viên nghiệp vụ (STAFF — Xem chấm công, nhân sự, bảng lương cá nhân)</option>
+                    <option value="ADMIN_CANGLONG">Quản lý cơ sở Càng Long (ADMIN_CANGLONG)</option>
+                    <option value="ADMIN_TANNHUT">Quản lý cơ sở Tân Nhựt (ADMIN_TANNHUT)</option>
+                    <option value="VIEWER">Người xem (VIEWER — Chỉ xem dữ liệu, không sửa)</option>
+                    <option value="SUPER_ADMIN">Quản Trị Toàn Quyền (SUPER_ADMIN)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; background: #FFFFFF; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                <div style="font-size: 12.5px; color: var(--color-text-secondary); display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="shield" style="width: 15px; height: 15px; color: var(--color-primary);"></i>
+                  <span>Trạng thái tài khoản người dùng:</span>
+                </div>
+                <select class="form-control" id="emp-acc-status" style="width: 170px; font-size: 12.5px; font-weight: 600; padding: 4px 8px;">
+                  <option value="ACTIVE" selected>Hoạt động (Cho phép)</option>
+                  <option value="BLOCKED">Khóa tài khoản</option>
+                </select>
+              </div>
             </div>
           </div>
         </form>

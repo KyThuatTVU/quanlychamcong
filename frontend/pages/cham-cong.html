@@ -172,7 +172,7 @@
             <!-- CHỌN NGÀY (DÀNH CHO CHẾ ĐỘ XEM THEO NGÀY) -->
             <div class="filter-group" id="group-filter-daily">
               <label class="form-label" style="margin-bottom: 0; font-size: 13px;">Chọn ngày:</label>
-              <input type="date" class="form-control" id="input-daily-date" value="2026-10-20" style="width: 150px; padding: 5px 10px;">
+              <input type="date" class="form-control" id="input-daily-date" style="width: 150px; padding: 5px 10px;">
               <button class="btn btn-secondary btn-sm" id="btn-prev-day" title="Ngày trước">◀</button>
               <button class="btn btn-secondary btn-sm" id="btn-today">Hôm nay</button>
               <button class="btn btn-secondary btn-sm" id="btn-next-day" title="Ngày sau">▶</button>
@@ -184,10 +184,10 @@
                 <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
                 <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
                 <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9">Tháng 9</option>
-                <option value="10" selected>Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+                <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
               </select>
               <select id="select-year" class="form-control" style="width: 95px; padding: 6px 12px;">
-                <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                <option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option><option value="2028">2028</option>
               </select>
             </div>
           </div>
@@ -202,7 +202,7 @@
         <div class="daily-banner">
           <div style="display: flex; align-items: center; gap: 10px;">
             <i data-lucide="calendar"></i>
-            <span id="daily-banner-title">📅 NGÀY 20/10/2026 - THỨ BA</span>
+            <span id="daily-banner-title">📅 Đang nạp lịch chấm công...</span>
           </div>
           <div style="font-size: 13px; font-weight: 500; color: #1E40AF;">
             💡 Nhập giờ vào / ra ➔ Hệ thống tự tính toán phút, số ca, đi trễ và tự động lưu
@@ -225,8 +225,8 @@
                     <th style="width: 110px;">Giờ ra (HH:MM)</th>
                     <th style="width: 100px;">Thời gian làm</th>
                     <th style="width: 95px;">Đi trễ (phút)</th>
-                    <th style="width: 95px;">Tăng ca</th>
-                    <th style="width: 105px;">Số ca TC</th>
+                    <th style="width: 105px;">Dạy ca tối</th>
+                    <th style="width: 95px;">Số ca tối</th>
                     <th style="width: 95px;">Ký hiệu công</th>
                     <th style="width: 130px;">Trạng thái xác nhận</th>
                   </tr>

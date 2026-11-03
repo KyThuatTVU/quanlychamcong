@@ -7,6 +7,21 @@ class User {
 
     public function __construct() {
         $this->db = Database::getConnection();
+        $this->ensureSchema();
+    }
+
+    private function ensureSchema(): void {
+        static $checked = false;
+        if ($checked) return;
+        $checked = true;
+
+        try {
+            $cols = $this->db->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
+            if (!in_array('employee_id', $cols)) {
+                $this->db->exec("ALTER TABLE users ADD COLUMN employee_id INT NULL AFTER branch_id");
+                $this->db->exec("ALTER TABLE users ADD INDEX idx_user_employee (employee_id)");
+            }
+        } catch (Throwable $e) {}
     }
 
     /**
@@ -230,9 +245,115 @@ class User {
         return $del->execute([':id' => $id]);
     }
 
+    /**
+     * Tạo hoặc cập nhật tài khoản đăng nhập cho nhân viên / giáo viên
+     */
+    public function createOrUpdateForEmployee(int $employeeId, array $d, int $branchId, string $fullName): ?array {
+        $username = trim($d['account_username'] ?? '');
+        $password = trim($d['account_password'] ?? '');
+        $email = strtolower(trim($d['account_email'] ?? ''));
+        $role = trim($d['account_role'] ?? 'STAFF');
+        $status = trim($d['account_status'] ?? 'ACTIVE');
+
+        if (empty($username)) {
+            return null;
+        }
+
+        // Nếu không có email, tự tạo email nội bộ từ username
+        if (empty($email)) {
+            $email = $username . '@happykids.local';
+        }
+
+        // Hợp lệ hóa role
+        $allowedRoles = ['SUPER_ADMIN', 'ADMIN_CANGLONG', 'ADMIN_TANNHUT', 'STAFF', 'VIEWER'];
+        if (!in_array($role, $allowedRoles)) {
+            $role = 'STAFF';
+        }
+
+        // 1. Tìm xem nhân viên này đã có user gắn với employee_id chưa
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE employee_id = :emp_id LIMIT 1");
+        $stmt->execute([':emp_id' => $employeeId]);
+        $existing = $stmt->fetch();
+
+        if (!$existing) {
+            // Thử tìm theo username
+            $stmt2 = $this->db->prepare("SELECT * FROM users WHERE username = :un LIMIT 1");
+            $stmt2->execute([':un' => $username]);
+            $existing = $stmt2->fetch();
+        }
+
+        if ($existing) {
+            // Đã có tài khoản -> Cập nhật
+            // Kiểm tra nếu đổi username mà bị trùng với tài khoản khác
+            $chk = $this->db->prepare("SELECT id FROM users WHERE username = :un AND id != :id LIMIT 1");
+            $chk->execute([':un' => $username, ':id' => $existing['id']]);
+            if ($chk->fetch()) {
+                throw new Exception('Tên đăng nhập "' . $username . '" đã được sử dụng bởi người khác');
+            }
+
+            $sql = "UPDATE users SET 
+                        username = :un,
+                        email = :em,
+                        name = :name,
+                        role = :role,
+                        branch_id = :branch_id,
+                        employee_id = :emp_id,
+                        status = :status";
+            $params = [
+                ':un' => $username,
+                ':em' => $email,
+                ':name' => $fullName,
+                ':role' => $role,
+                ':branch_id' => $branchId,
+                ':emp_id' => $employeeId,
+                ':status' => $status,
+                ':id' => $existing['id']
+            ];
+
+            if (!empty($password)) {
+                $sql .= ", password = :pwd";
+                $params[':pwd'] = password_hash($password, PASSWORD_DEFAULT);
+            }
+            $sql .= " WHERE id = :id";
+
+            $upd = $this->db->prepare($sql);
+            $upd->execute($params);
+            return $this->getById((int)$existing['id']);
+        } else {
+            // Tạo tài khoản mới
+            $chk = $this->db->prepare("SELECT id FROM users WHERE username = :un LIMIT 1");
+            $chk->execute([':un' => $username]);
+            if ($chk->fetch()) {
+                throw new Exception('Tên đăng nhập "' . $username . '" đã tồn tại trong hệ thống');
+            }
+
+            $pwdToUse = !empty($password) ? $password : '123456';
+            $hash = password_hash($pwdToUse, PASSWORD_DEFAULT);
+            $avatar = 'https://ui-avatars.com/api/?name=' . urlencode($fullName) . '&background=2563EB&color=fff';
+
+            $ins = $this->db->prepare("
+                INSERT INTO users (username, email, name, password, avatar, role, branch_id, employee_id, status, created_at)
+                VALUES (:username, :email, :name, :password, :avatar, :role, :branch_id, :employee_id, 'ACTIVE', NOW())
+            ");
+            $ins->execute([
+                ':username' => $username,
+                ':email' => $email,
+                ':name' => $fullName,
+                ':password' => $hash,
+                ':avatar' => $avatar,
+                ':role' => $role,
+                ':branch_id' => $branchId,
+                ':employee_id' => $employeeId
+            ]);
+
+            $newId = (int)$this->db->lastInsertId();
+            return $this->getById($newId);
+        }
+    }
+
     public function getById(int $id): ?array {
         $stmt = $this->db->prepare("
-            SELECT u.id, u.google_id, u.username, u.email, u.name, u.avatar, u.role, u.branch_id, 
+            SELECT u.id, u.google_id, u.username, u.email, u.name, u.avatar, u.role, u.branch_id, u.employee_id,
                    b.name as branch_name, u.status, u.last_login, u.created_at 
             FROM users u
             LEFT JOIN branches b ON u.branch_id = b.id
@@ -246,7 +367,7 @@ class User {
 
     public function getAll(): array {
         $stmt = $this->db->query("
-            SELECT u.id, u.google_id, u.username, u.email, u.name, u.avatar, u.role, u.branch_id, 
+            SELECT u.id, u.google_id, u.username, u.email, u.name, u.avatar, u.role, u.branch_id, u.employee_id,
                    b.name as branch_name, u.status, u.last_login, u.created_at 
             FROM users u
             LEFT JOIN branches b ON u.branch_id = b.id

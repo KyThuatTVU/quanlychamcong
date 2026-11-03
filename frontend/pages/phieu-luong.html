@@ -614,9 +614,10 @@
     utils.initIcons();
 
     // Biến toàn cục
-    let currentBranchId = 2; // Mặc định mở Tân Nhựt như hình user gửi
-    let currentMonth = 10;
-    let currentYear = 2026;
+    const _now = new Date();
+    let currentBranchId = utils.getCurrentBranchId() || 1;
+    let currentMonth = _now.getMonth() + 1;
+    let currentYear = _now.getFullYear();
     let currentEmpId = null;
     let branchEmployees = [];
     let currentSlipData = null;

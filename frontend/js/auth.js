@@ -113,19 +113,6 @@ const auth = {
     }
   },
 
-  // Đăng nhập thử nghiệm (Dev Test)
-  async loginDev() {
-    const res = await api.post('auth_google.php', {
-      is_dev_test: true
-    });
-    if (res.status === 'success') {
-      utils.showToast('Đăng nhập thử nghiệm thành công!', 'success');
-      setTimeout(() => {
-        window.location.href = 'index.html';
-      }, 400);
-    }
-  },
-
   // Đăng xuất
   async logout() {
     await api.get('auth_google.php?action=logout');

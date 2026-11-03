@@ -84,6 +84,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     toggleSalaryFields(e.target.value);
   });
 
+  // Bật/tắt cấp tài khoản đăng nhập
+  document.getElementById('emp-form-has-account')?.addEventListener('change', (e) => {
+    toggleAccountFields(e.target.checked);
+  });
+
+  // Tự động gợi ý username khi gõ mã nhân viên lúc thêm mới
+  document.getElementById('emp-form-code')?.addEventListener('input', (e) => {
+    const id = document.getElementById('emp-form-id').value;
+    const accUserInput = document.getElementById('emp-acc-username');
+    if (!id && accUserInput) {
+      accUserInput.value = e.target.value.toLowerCase().trim();
+    }
+  });
+
   document.getElementById('btn-logout')?.addEventListener('click', () => auth.logout());
   document.getElementById('btn-toggle-sidebar')?.addEventListener('click', () => {
     document.querySelector('.app-sidebar')?.classList.toggle('show');
@@ -168,11 +182,18 @@ function filterAndRender(searchTerm = '') {
           : `<span class="badge badge-danger" style="background:#FFE4E6; color:#BE123C; border:1px solid #FECDD3;" title="Không hưởng phụ cấp cơm">Không</span>`)
       : `<span style="color: #9CA3AF;">-</span>`;
 
+    const accountBadge = emp.has_account == 1
+      ? `<div style="margin-top: 3px;"><span class="badge" style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-size: 11px; padding: 2px 6px;" title="Tài khoản đăng nhập: ${emp.user_username} (${emp.user_role})"><i data-lucide="shield-check" style="width: 11px; height: 11px; display: inline-block; vertical-align: middle; margin-right: 3px;"></i>${emp.user_username}</span></div>`
+      : `<div style="margin-top: 3px;"><span class="badge" style="background: #F1F5F9; color: #64748B; border: 1px solid #CBD5E1; font-size: 11px; padding: 2px 6px;" title="Chưa cấp tài khoản đăng nhập"><i data-lucide="shield-alert" style="width: 11px; height: 11px; display: inline-block; vertical-align: middle; margin-right: 3px;"></i>Chưa có TK</span></div>`;
+
     return `
       <tr>
         <td style="text-align: center; color: var(--color-text-secondary); font-size: 12.5px;">${index + 1}</td>
         <td><strong style="color: var(--color-primary);">${emp.employee_code}</strong></td>
-        <td><strong>${emp.full_name}</strong></td>
+        <td>
+          <strong>${emp.full_name}</strong>
+          ${accountBadge}
+        </td>
         <td>${emp.position || '-'}</td>
         <td>${typeBadge}</td>
         <td>${salaryDisplay}</td>
@@ -206,6 +227,14 @@ function toggleSalaryFields(type) {
   } else {
     if (fixedSection) fixedSection.style.display = 'none';
     if (hourlySection) hourlySection.style.display = 'block';
+  }
+}
+
+function toggleAccountFields(show) {
+  const sec = document.getElementById('section-account-fields');
+  if (sec) {
+    sec.style.display = show ? 'block' : 'none';
+    utils.initIcons();
   }
 }
 
@@ -250,6 +279,22 @@ function openAddModal() {
   document.getElementById('emp-form-time-out').value = '17:30';
   if (document.getElementById('emp-form-notes')) document.getElementById('emp-form-notes').value = '';
 
+  // Tài khoản đăng nhập (mặc định bật khi thêm mới để thuận tiện)
+  const hasAccCheckbox = document.getElementById('emp-form-has-account');
+  if (hasAccCheckbox) hasAccCheckbox.checked = true;
+  if (document.getElementById('emp-acc-username')) document.getElementById('emp-acc-username').value = '';
+  if (document.getElementById('emp-acc-email')) document.getElementById('emp-acc-email').value = '';
+  if (document.getElementById('emp-acc-password')) {
+    document.getElementById('emp-acc-password').value = '123456';
+    document.getElementById('emp-acc-password').placeholder = 'Mặc định: 123456';
+  }
+  if (document.getElementById('emp-acc-role')) document.getElementById('emp-acc-role').value = 'STAFF';
+  if (document.getElementById('emp-acc-status')) document.getElementById('emp-acc-status').value = 'ACTIVE';
+  if (document.getElementById('emp-acc-pwd-hint')) {
+    document.getElementById('emp-acc-pwd-hint').innerHTML = 'Thêm mới: Mặc định là <strong>123456</strong> (có thể thay đổi).';
+  }
+  toggleAccountFields(true);
+
   calcEmpDailyRateLive();
   toggleSalaryFields('FIXED');
   document.getElementById('employee-modal').classList.add('active');
@@ -290,6 +335,34 @@ window.openEditModal = function(id) {
   document.getElementById('emp-form-time-in').value = emp.default_time_in ? emp.default_time_in.substring(0, 5) : '';
   document.getElementById('emp-form-time-out').value = emp.default_time_out ? emp.default_time_out.substring(0, 5) : '';
   if (document.getElementById('emp-form-notes')) document.getElementById('emp-form-notes').value = emp.notes || '';
+
+  // Thông tin tài khoản đăng nhập
+  const hasAccount = (emp.has_account == 1 || emp.user_id || emp.user_username);
+  const hasAccCheckbox = document.getElementById('emp-form-has-account');
+  if (hasAccCheckbox) hasAccCheckbox.checked = Boolean(hasAccount);
+
+  if (document.getElementById('emp-acc-username')) {
+    document.getElementById('emp-acc-username').value = emp.user_username || (emp.employee_code || '').toLowerCase();
+  }
+  if (document.getElementById('emp-acc-email')) {
+    document.getElementById('emp-acc-email').value = emp.user_email || '';
+  }
+  if (document.getElementById('emp-acc-password')) {
+    document.getElementById('emp-acc-password').value = '';
+    document.getElementById('emp-acc-password').placeholder = hasAccount ? 'Để trống nếu không đổi mật khẩu' : 'Mặc định: 123456';
+  }
+  if (document.getElementById('emp-acc-role')) {
+    document.getElementById('emp-acc-role').value = emp.user_role || 'STAFF';
+  }
+  if (document.getElementById('emp-acc-status')) {
+    document.getElementById('emp-acc-status').value = emp.user_status || 'ACTIVE';
+  }
+  if (document.getElementById('emp-acc-pwd-hint')) {
+    document.getElementById('emp-acc-pwd-hint').innerHTML = hasAccount 
+      ? 'Đang có tài khoản: Để trống nếu không muốn đổi mật khẩu; nhập mật khẩu mới nếu cần cấp lại.'
+      : 'Chưa có tài khoản: Tích chọn để cấp tài khoản mới với mật khẩu mặc định <strong>123456</strong>.';
+  }
+  toggleAccountFields(Boolean(hasAccount));
 
   toggleSalaryFields(emp.salary_type);
   document.getElementById('employee-modal').classList.add('active');
@@ -340,11 +413,37 @@ async function saveEmployee() {
     payload.standard_work_days = parseFloat(document.getElementById('emp-form-std-days').value) || 26.0;
     payload.attendance_allowance = parseFloat(document.getElementById('emp-form-att-rate').value) || 0;
     payload.travel_allowance = parseFloat(document.getElementById('emp-form-travel-rate').value) || 0;
-    payload.has_lunch_allowance = parseInt(document.getElementById('emp-form-has-lunch').value),
+    payload.has_lunch_allowance = parseInt(document.getElementById('emp-form-has-lunch').value);
     payload.overtime_rate = parseFloat(document.getElementById('emp-form-ot-rate').value) || 150000;
     payload.boarding_allowance = parseFloat(document.getElementById('emp-form-board-rate').value) || 0;
     payload.hourly_rate = 0;
   }
+
+  // Thu thập thông tin cấp tài khoản đăng nhập
+  const hasAccount = document.getElementById('emp-form-has-account')?.checked;
+  if (hasAccount) {
+    const username = document.getElementById('emp-acc-username')?.value.trim();
+    if (!username) {
+      utils.showToast('Vui lòng nhập Tên đăng nhập (Username) cho nhân viên', 'warning');
+      return;
+    }
+    const pwd = document.getElementById('emp-acc-password')?.value.trim();
+    if (!id && !pwd) {
+      // Khi thêm mới nếu để trống mật khẩu -> dùng mặc định 123456
+      payload.account_password = '123456';
+    } else if (pwd) {
+      payload.account_password = pwd;
+    }
+    payload.create_account = true;
+    payload.account_username = username;
+    payload.account_email = document.getElementById('emp-acc-email')?.value.trim() || '';
+    payload.account_role = document.getElementById('emp-acc-role')?.value || 'STAFF';
+    payload.account_status = document.getElementById('emp-acc-status')?.value || 'ACTIVE';
+  } else {
+    payload.create_account = false;
+  }
+
+  utils.showToast('Đang lưu thông tin hồ sơ...', 'info');
 
   let res;
   if (id) {
@@ -352,6 +451,7 @@ async function saveEmployee() {
     res = await api.put('employees.php', payload);
   } else {
     res = await api.post('employees.php', payload);
+  }
   }
 
   if (res.status === 'success') {

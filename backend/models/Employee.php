@@ -209,9 +209,13 @@ class Employee {
     }
 
     public function getList(int $branchId = 0, string $salaryType = '', string $status = 'ACTIVE'): array {
-        $sql = "SELECT e.*, b.name as branch_name, b.code as branch_code 
+        $sql = "SELECT e.*, b.name as branch_name, b.code as branch_code,
+                       u.id as user_id, u.username as user_username, u.email as user_email,
+                       u.role as user_role, u.status as user_status,
+                       (CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END) as has_account
                 FROM employees e
                 JOIN branches b ON e.branch_id = b.id
+                LEFT JOIN users u ON (u.employee_id = e.id OR (u.username = e.employee_code AND u.branch_id = e.branch_id))
                 WHERE 1=1";
         $params = [];
 
@@ -236,9 +240,13 @@ class Employee {
 
     public function getById(int $id): ?array {
         $stmt = $this->db->prepare("
-            SELECT e.*, b.name as branch_name, b.code as branch_code 
+            SELECT e.*, b.name as branch_name, b.code as branch_code,
+                   u.id as user_id, u.username as user_username, u.email as user_email,
+                   u.role as user_role, u.status as user_status,
+                   (CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END) as has_account
             FROM employees e
             JOIN branches b ON e.branch_id = b.id
+            LEFT JOIN users u ON (u.employee_id = e.id OR (u.username = e.employee_code AND u.branch_id = e.branch_id))
             WHERE e.id = :id LIMIT 1
         ");
         $stmt->execute([':id' => $id]);
@@ -285,7 +293,21 @@ class Employee {
             ':notes' => $data['notes'] ?? ''
         ]);
 
-        return (int)$this->db->lastInsertId();
+        $newId = (int)$this->db->lastInsertId();
+
+        // Tự động tạo tài khoản đăng nhập nếu có yêu cầu
+        if (!empty($data['create_account']) || !empty($data['account_username'])) {
+            require_once __DIR__ . '/User.php';
+            $userModel = new User();
+            $userModel->createOrUpdateForEmployee(
+                $newId,
+                $data,
+                (int)($data['branch_id'] ?? 1),
+                trim($data['full_name'])
+            );
+        }
+
+        return $newId;
     }
 
     public function update(int $id, array $data): bool {
@@ -315,7 +337,7 @@ class Employee {
         WHERE id = :id";
 
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':branch_id' => $data['branch_id'] ?? 1,
             ':employee_code' => trim($data['employee_code']),
             ':full_name' => trim($data['full_name']),
@@ -340,13 +362,33 @@ class Employee {
             ':notes' => $data['notes'] ?? '',
             ':id' => $id
         ]);
+
+        // Cập nhật hoặc tạo mới tài khoản đăng nhập nếu có thông tin
+        if (!empty($data['create_account']) || !empty($data['account_username'])) {
+            require_once __DIR__ . '/User.php';
+            $userModel = new User();
+            $userModel->createOrUpdateForEmployee(
+                $id,
+                $data,
+                (int)($data['branch_id'] ?? 1),
+                trim($data['full_name'])
+            );
+        }
+
+        return $ok;
     }
 
     public function delete(int $id, bool $permanent = false): bool {
         if ($permanent) {
+            try {
+                $this->db->prepare("DELETE FROM users WHERE employee_id = :id")->execute([':id' => $id]);
+            } catch (Throwable $e) {}
             $stmt = $this->db->prepare("DELETE FROM employees WHERE id = :id");
             return $stmt->execute([':id' => $id]);
         }
+        try {
+            $this->db->prepare("UPDATE users SET status = 'BLOCKED' WHERE employee_id = :id")->execute([':id' => $id]);
+        } catch (Throwable $e) {}
         $stmt = $this->db->prepare("UPDATE employees SET status = 'RESIGNED' WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }

@@ -146,6 +146,7 @@ function renderPayrollTable() {
         <th>Tiền TC</th>
         <th>Bán Trú</th>
         <th>Chuyên Cần</th>
+        <th>Hiệu Quả CV</th>
         <th>Tiền Cơm</th>
         <th>Thưởng Đi Lại</th>
         <th>Thưởng Khác</th>
@@ -157,7 +158,7 @@ function renderPayrollTable() {
     `;
 
     if (payrollList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="20" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Chưa có dữ liệu tính lương tháng ${currentMonth}/${currentYear}. Bấm <strong>"Thêm Dòng Lương"</strong> hoặc <strong>"Tính Lại Tự Động"</strong> để tạo bảng lương.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="21" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Chưa có dữ liệu tính lương tháng ${currentMonth}/${currentYear}. Bấm <strong>"Thêm Dòng Lương"</strong> hoặc <strong>"Tính Lại Tự Động"</strong> để tạo bảng lương.</td></tr>`;
       document.getElementById('summary-total-cost').textContent = `Tổng chi lương: 0 ₫`;
       const otBadge = document.getElementById('summary-total-ot');
       if (otBadge) otBadge.style.display = 'none';
@@ -178,9 +179,10 @@ function renderPayrollTable() {
       }
 
       const empId = item.employee_id || item.id;
-      const stdDays = item.standard_work_days || item.emp_std_days || 26.0;
+      const stdDays = item.standard_work_days || item.emp_std_days || 27.0;
       const dailyRate = item.daily_salary_rate || (stdDays > 0 ? Math.round(item.base_salary / stdDays) : 0);
       const travelPay = parseFloat(item.travel_allowance || 0);
+      const effBonus = parseFloat(item.efficiency_bonus || 0);
       const directorReview = item.director_review || '';
 
       return `
@@ -189,7 +191,19 @@ function renderPayrollTable() {
           <td><strong style="color: var(--color-primary);">${item.employee_code}</strong></td>
           <td><strong>${item.full_name}</strong></td>
           <td><span style="font-size: 12px; color: var(--color-text-secondary);">${item.position || 'Giáo viên'}</span></td>
-          <td>${utils.formatCurrency(item.base_salary)}</td>
+          <td>
+            <strong>${utils.formatCurrency(item.base_salary)}</strong>
+            ${parseFloat(item.probation_salary || 0) > 0 ? `
+              <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 2px;">
+                <span style="background: #FEF3C7; color: #92400E; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: 600; text-align: left; border: 1px solid #FCD34D;">
+                  ⏳ TV: ${utils.formatCurrency(item.probation_salary)}
+                </span>
+                <span style="background: #ECFDF5; color: #065F46; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: 600; text-align: left; border: 1px solid #A7F3D0;">
+                  ✓ CT: ${utils.formatCurrency(item.official_salary || item.base_salary)}
+                </span>
+              </div>
+            ` : ''}
+          </td>
           <td><strong>${stdDays}</strong></td>
           <td>${utils.formatCurrency(dailyRate)}</td>
           <td><strong style="color: var(--color-accent);">${item.total_days_x} ngày</strong></td>
@@ -203,12 +217,13 @@ function renderPayrollTable() {
               : `<span class="badge" style="background:#EFF6FF; color:#2563EB; border: 1px dashed #93C5FD; font-weight: 600; cursor: pointer;">+ Nhập CC</span>`
             }
           </td>
+          <td style="text-align: right; font-weight: 600; color: #047857;">${effBonus > 0 ? utils.formatCurrency(effBonus) : '-'}</td>
           <td>${item.lunch_allowance > 0 ? utils.formatCurrency(item.lunch_allowance) : '-'}</td>
           <td>${travelPay > 0 ? utils.formatCurrency(travelPay) : '-'}</td>
           <td style="color: var(--color-accent);">${item.bonus > 0 ? '+' + utils.formatCurrency(item.bonus) : '-'}</td>
           <td style="color: var(--color-danger);">${item.deductions > 0 ? '-' + utils.formatCurrency(item.deductions) : '-'}</td>
           <td><strong class="cell-net-salary">${utils.formatCurrency(item.net_salary)}</strong></td>
-          <td style="max-width: 200px; font-size: 12px; color: #374151;" title="${directorReview}">${directorReview ? `<em>${directorReview}</em>` : '-'}</td>
+          <td style="max-width: 250px; font-size: 12px; color: #374151;" title="${item.director_review || item.note || ''}">${(item.director_review || item.note) ? `<em>${item.director_review || item.note}</em>` : '-'}</td>
           <td style="text-align: right;">
             <div class="action-btn-group">
               <button class="btn btn-secondary btn-sm" onclick="openEditPayrollModal(${empId})" title="Cấu hình đầy đủ phiếu lương của giáo viên">
@@ -239,7 +254,9 @@ function renderPayrollTable() {
         <th>Đơn Giá / Ca</th>
         <th>Lương Theo Ca</th>
         <th>Phụ Cấp Bán Trú</th>
-        <th>Thưởng</th>
+        <th>Chuyên Cần</th>
+        <th>Hiệu Quả CV</th>
+        <th>Thưởng Khác</th>
         <th>Khấu Trừ</th>
         <th>THỰC LĨNH</th>
         <th style="text-align: right; min-width: 170px;">Thao Tác</th>
@@ -247,7 +264,7 @@ function renderPayrollTable() {
     `;
 
     if (payrollList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Chưa có dữ liệu tính lương tháng ${currentMonth}/${currentYear}. Bấm <strong>"Thêm Dòng Lương"</strong> hoặc <strong>"Tính Lại Tự Động"</strong> để tạo bảng lương.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Chưa có dữ liệu tính lương tháng ${currentMonth}/${currentYear}. Bấm <strong>"Thêm Dòng Lương"</strong> hoặc <strong>"Tính Lại Tự Động"</strong> để tạo bảng lương.</td></tr>`;
       document.getElementById('summary-total-cost').textContent = `Tổng chi lương: 0 ₫`;
       return;
     }
@@ -256,15 +273,42 @@ function renderPayrollTable() {
       const net = parseFloat(item.net_salary || 0);
       totalExpense += net;
       const empId = item.employee_id || item.id;
+      const attPay = parseFloat(item.attendance_allowance || 0);
+      const effBonus = parseFloat(item.efficiency_bonus || 0);
       return `
         <tr>
           <td>${index + 1}</td>
           <td><strong style="color: var(--color-primary);">${item.employee_code}</strong></td>
-          <td><strong>${item.full_name}</strong></td>
+          <td>
+            <strong>${item.full_name}</strong>
+            ${(item.director_review || item.note) ? `
+              <div style="font-size: 11px; color: #4B5563; margin-top: 2px; max-width: 220px; line-height: 1.2;">
+                <em>${item.director_review || item.note}</em>
+              </div>
+            ` : ''}
+          </td>
           <td><strong style="color: var(--color-accent);">${parseFloat(item.total_slots || 0).toFixed(2).replace(/\.?0+$/, '')} ca</strong></td>
-          <td>${utils.formatCurrency(item.hourly_rate || item.emp_hourly_rate || 120000)}</td>
+          <td>
+            <div><strong style="color: #1F2937;">${utils.formatCurrency(item.hourly_rate || item.emp_hourly_rate || 120000)}/ca</strong></div>
+            ${(parseFloat(item.probation_hourly_rate || 0) > 0 || (parseFloat(item.official_hourly_rate || 0) > 0 && parseFloat(item.probation_hourly_rate || 0) !== parseFloat(item.official_hourly_rate || 0))) ? `
+              <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
+                ${parseFloat(item.probation_hourly_rate || 0) > 0 ? `
+                  <span class="badge" style="background: #FEF3C7; color: #92400E; font-size: 10px; padding: 1px 5px; border-radius: 4px; border: 1px solid #FCD34D; width: fit-content; font-weight: 600;">
+                    ⏳ TV: ${utils.formatCurrency(item.probation_hourly_rate)}
+                  </span>
+                ` : ''}
+                ${parseFloat(item.official_hourly_rate || 0) > 0 ? `
+                  <span class="badge" style="background: #ECFDF5; color: #065F46; font-size: 10px; padding: 1px 5px; border-radius: 4px; border: 1px solid #A7F3D0; width: fit-content; font-weight: 600;">
+                    ✓ CT: ${utils.formatCurrency(item.official_hourly_rate)}
+                  </span>
+                ` : ''}
+              </div>
+            ` : ''}
+          </td>
           <td><strong class="cell-currency-bold">${utils.formatCurrency(item.salary_by_slots)}</strong></td>
           <td>${item.boarding_pay > 0 ? utils.formatCurrency(item.boarding_pay) + ` (${item.total_boarding_days || 0} buổi)` : '-'}</td>
+          <td>${attPay > 0 ? `<span style="font-weight: 700; color: #1D4ED8;">${utils.formatCurrency(attPay)}</span>` : '-'}</td>
+          <td style="font-weight: 600; color: #047857;">${effBonus > 0 ? utils.formatCurrency(effBonus) : '-'}</td>
           <td style="color: var(--color-accent);">${item.bonus > 0 ? '+' + utils.formatCurrency(item.bonus) : '-'}</td>
           <td style="color: var(--color-danger);">${item.deductions > 0 ? '-' + utils.formatCurrency(item.deductions) : '-'}</td>
           <td><strong class="cell-net-salary">${utils.formatCurrency(item.net_salary)}</strong></td>
@@ -326,6 +370,12 @@ window.openEditPayrollModal = function(empId) {
     document.getElementById('edit-section-hourly').style.display = 'none';
 
     document.getElementById('edit-f-base-salary').value = item.base_salary || 0;
+    if (document.getElementById('edit-f-probation-salary')) {
+      document.getElementById('edit-f-probation-salary').value = item.probation_salary || '';
+    }
+    if (document.getElementById('edit-f-official-salary')) {
+      document.getElementById('edit-f-official-salary').value = item.official_salary || item.base_salary || '';
+    }
     const stdDays = parseFloat(item.standard_work_days || item.emp_std_days || 26.0);
     document.getElementById('edit-f-std-days').value = stdDays;
     const dailyRate = parseFloat(item.daily_salary_rate || 0) || (stdDays > 0 ? Math.round((item.base_salary || 0) / stdDays) : 0);
@@ -345,6 +395,8 @@ window.openEditPayrollModal = function(empId) {
 
     document.getElementById('edit-h-slots').value = item.total_slots || 0;
     document.getElementById('edit-h-rate').value = item.hourly_rate || item.emp_hourly_rate || 120000;
+    document.getElementById('edit-h-probation-rate').value = item.probation_hourly_rate || item.emp_probation_hourly_rate || '';
+    document.getElementById('edit-h-official-rate').value = item.official_hourly_rate || item.emp_official_hourly_rate || '';
     document.getElementById('edit-h-salary-by-slots').value = item.salary_by_slots || 0;
     document.getElementById('edit-h-boarding-days').value = item.total_boarding_days || 0;
     document.getElementById('edit-h-boarding-pay').value = item.boarding_pay || 0;
@@ -455,6 +507,12 @@ async function submitEditPayroll() {
 
   if (salaryType === 'FIXED') {
     payload.base_salary = parseFloat(document.getElementById('edit-f-base-salary').value) || 0;
+    if (document.getElementById('edit-f-probation-salary')) {
+      payload.probation_salary = parseFloat(document.getElementById('edit-f-probation-salary').value) || 0;
+    }
+    if (document.getElementById('edit-f-official-salary')) {
+      payload.official_salary = parseFloat(document.getElementById('edit-f-official-salary').value) || (payload.base_salary || 0);
+    }
     payload.standard_work_days = parseFloat(document.getElementById('edit-f-std-days').value) || 26.0;
     payload.daily_salary_rate = parseFloat(document.getElementById('edit-f-daily-rate').value) || 0;
     payload.total_days_x = parseFloat(document.getElementById('edit-f-days-x').value) || 0;
@@ -471,6 +529,8 @@ async function submitEditPayroll() {
     const rawSlots = String(document.getElementById('edit-h-slots').value || '0').replace(',', '.');
     payload.total_slots = parseFloat(rawSlots) || 0;
     payload.hourly_rate = parseFloat(document.getElementById('edit-h-rate').value) || 120000;
+    payload.probation_hourly_rate = parseFloat(document.getElementById('edit-h-probation-rate').value) || 0;
+    payload.official_hourly_rate = parseFloat(document.getElementById('edit-h-official-rate').value) || 0;
     payload.salary_by_slots = parseFloat(document.getElementById('edit-h-salary-by-slots').value) || 0;
     payload.total_boarding_days = parseInt(document.getElementById('edit-h-boarding-days').value) || 0;
     payload.boarding_pay = parseFloat(document.getElementById('edit-h-boarding-pay').value) || 0;
@@ -566,6 +626,8 @@ window.onSelectAddEmployee = function(empId) {
 
     document.getElementById('add-h-slots').value = 10;
     document.getElementById('add-h-rate').value = emp.hourly_rate || 120000;
+    document.getElementById('add-h-probation-rate').value = emp.probation_hourly_rate || '';
+    document.getElementById('add-h-official-rate').value = emp.official_hourly_rate || '';
     document.getElementById('add-h-boarding-days').value = 0;
     document.getElementById('add-h-boarding-pay').value = 0;
   }
@@ -589,7 +651,8 @@ window.calcAddLive = function() {
     const board = parseFloat(document.getElementById('add-f-boarding-pay').value) || 0;
     const att = parseFloat(document.getElementById('add-f-att-pay').value) || 0;
     const travel = parseFloat(document.getElementById('add-f-travel-pay').value) || 0;
-    const hasLunch = emp.has_lunch_allowance !== 0 && emp.has_lunch_allowance !== '0';
+    const isTanNhut = parseInt(emp.branch_id) === 2;
+    const hasLunch = !isTanNhut && emp.has_lunch_allowance !== 0 && emp.has_lunch_allowance !== '0';
     const lunch = hasLunch ? Math.round(daysX * 25000) : 0;
     totalIncome = byDays + ot + board + att + lunch + travel;
   } else {
@@ -643,6 +706,8 @@ async function submitAddPayroll() {
     const rawSlots = String(document.getElementById('add-h-slots').value || '0').replace(',', '.');
     payload.total_slots = parseFloat(rawSlots) || 0;
     payload.hourly_rate = parseFloat(document.getElementById('add-h-rate').value) || 120000;
+    payload.probation_hourly_rate = parseFloat(document.getElementById('add-h-probation-rate').value) || 0;
+    payload.official_hourly_rate = parseFloat(document.getElementById('add-h-official-rate').value) || 0;
     payload.total_boarding_days = parseInt(document.getElementById('add-h-boarding-days').value) || 0;
     payload.boarding_pay = parseFloat(document.getElementById('add-h-boarding-pay').value) || 0;
   }
@@ -691,6 +756,9 @@ window.openAdjustmentModal = function(empId) {
   document.getElementById('adj-emp-id').value = empId;
   document.getElementById('adj-emp-name').textContent = `Đánh Giá & Điều Chỉnh: ${item.full_name} (${item.employee_code})`;
   document.getElementById('adj-attendance').value = item.attendance_allowance || '';
+  if (document.getElementById('adj-efficiency')) {
+    document.getElementById('adj-efficiency').value = item.efficiency_bonus || '';
+  }
   document.getElementById('adj-bonus').value = item.bonus || '';
   document.getElementById('adj-deductions').value = item.deductions || '';
   document.getElementById('adj-note').value = item.note || '';
@@ -705,6 +773,7 @@ window.closeAdjustmentModal = function() {
 async function saveAdjustment() {
   const empId = document.getElementById('adj-emp-id').value;
   const att = parseFloat(document.getElementById('adj-attendance').value) || 0;
+  const eff = parseFloat(document.getElementById('adj-efficiency')?.value) || 0;
   const bonus = parseFloat(document.getElementById('adj-bonus').value) || 0;
   const deductions = parseFloat(document.getElementById('adj-deductions').value) || 0;
   const note = document.getElementById('adj-note').value.trim();
@@ -714,6 +783,7 @@ async function saveAdjustment() {
     month: currentMonth,
     year: currentYear,
     attendance_allowance: att,
+    efficiency_bonus: eff,
     bonus: bonus,
     deductions: deductions,
     note: note

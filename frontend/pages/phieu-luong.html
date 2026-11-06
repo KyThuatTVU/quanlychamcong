@@ -23,12 +23,12 @@
     /* THANH CÔNG CỤ CHỌN NHANH */
     .slip-toolbar-card {
       width: 100%;
-      max-width: 540px;
+      max-width: 480px;
       background: #FFFFFF;
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
       padding: 12px 16px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       display: flex;
       flex-direction: column;
@@ -48,13 +48,13 @@
       align-items: center;
       gap: 6px;
       flex: 1;
-      min-width: 260px;
+      min-width: 240px;
     }
 
     /* KHUNG PHIẾU LƯƠNG CHUẨN FORM EXCEL */
     .excel-payslip-wrapper {
       width: 100%;
-      max-width: 540px;
+      max-width: 480px;
       background: #FFFFFF;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       border: 1px solid #CBD5E1;
@@ -73,18 +73,18 @@
       background: #174375; /* Xanh Navy chuẩn Excel trung tâm */
       color: #FFFFFF;
       text-align: center;
-      padding: 14px 16px;
+      padding: 10px 14px;
       border: 1px solid #174375;
     }
     .excel-header-title {
-      font-size: 15px;
+      font-size: 14.5px;
       font-weight: 800;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       line-height: 1.35;
     }
     .excel-header-branch {
-      font-size: 13.5px;
+      font-size: 12.5px;
       font-weight: 700;
       margin-top: 3px;
       text-transform: uppercase;
@@ -94,14 +94,14 @@
     /* CÁC HÀNG VÀ Ô */
     .excel-table tr td {
       border: 1px solid #CBD5E1;
-      padding: 7.5px 14px;
-      font-size: 13.5px;
+      padding: 6px 12px;
+      font-size: 13px;
       line-height: 1.4;
     }
 
     /* Cột tiêu đề trái */
     .excel-col-label {
-      width: 38%;
+      width: 42%;
       background: #E8EFF7;
       color: #1E293B;
       font-weight: 500;
@@ -110,7 +110,7 @@
 
     /* Cột giá trị phải */
     .excel-col-val {
-      width: 62%;
+      width: 58%;
       background: #FFFFFF;
       color: #0F172A;
       text-align: right;
@@ -200,26 +200,39 @@
     }
     .review-textarea {
       width: 100%;
-      border: 1px solid transparent;
-      background: transparent;
+      border: 1px dashed #CBD5E1;
+      background: #F8FAFC;
       font-family: inherit;
       font-size: 13px;
       color: #1E293B;
       resize: vertical;
-      min-height: 52px;
-      line-height: 1.45;
+      min-height: 48px;
+      line-height: 1.5;
       outline: none;
-      border-radius: 3px;
-      padding: 4px;
+      border-radius: 4px;
+      padding: 6px 10px;
+      transition: all 0.2s;
     }
     .review-textarea:hover {
-      background: #F8FAFC;
-      border-color: #CBD5E1;
+      background: #FFFFFF;
+      border-color: #94A3B8;
     }
     .review-textarea:focus {
       background: #FFFFFF;
       border-color: #2563EB;
       box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    .print-review-display {
+      display: none;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #1E293B;
+      font-style: italic;
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 2px 0;
+      text-align: left;
     }
 
     /* Quick badge for chuyên cần */
@@ -238,23 +251,65 @@
       background: #DBEAFE;
     }
 
-    /* Chữ ký khi in */
+    /* Chữ ký phiếu lương */
     .slip-signatures {
-      display: none;
-      margin-top: 35px;
-      padding: 0 20px 20px;
+      margin-top: 16px;
+      padding: 10px 16px 16px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       text-align: center;
-      font-size: 13px;
+      font-size: 12.5px;
+    }
+    .sign-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
     }
     .sign-col h4 {
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 700;
-      margin-bottom: 50px;
+      color: #0F172A;
+      margin: 0 0 3px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .sign-sub {
+      font-size: 11px;
+      font-style: italic;
+      color: #64748B;
+      margin-bottom: 4px;
+    }
+    .sign-img-wrapper {
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2px 0 4px;
+    }
+    .signature-img {
+      max-height: 48px;
+      max-width: 145px;
+      object-fit: contain;
+      filter: contrast(1.05);
+      transition: opacity 0.2s;
+    }
+    .sign-blank-space {
+      min-height: 50px;
+      margin: 2px 0 4px;
+    }
+    .sign-name {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #1E293B;
+      margin-top: 2px;
     }
 
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm 15mm;
+      }
       body {
         background: #FFFFFF;
         padding: 0;
@@ -271,25 +326,79 @@
       }
       .slip-view-wrapper {
         padding: 0;
+        display: block !important;
       }
       .excel-payslip-wrapper {
         box-shadow: none;
-        border: 1px solid #000000;
-        max-width: 100%;
-        margin: 0 auto;
+        border: 1.5px solid #174375 !important;
+        width: 440px !important;
+        max-width: 440px !important;
+        margin: 10px auto !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .excel-table tr td {
+        padding: 4.5px 10px !important;
+        font-size: 12px !important;
       }
       .excel-header-cell {
         background: #174375 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        padding: 9px 12px !important;
+      }
+      .excel-header-title {
+        font-size: 13.5px !important;
+      }
+      .excel-header-branch {
+        font-size: 11.5px !important;
       }
       .excel-col-label, .row-total-income td {
         background: #E8EFF7 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
+      .row-review .excel-col-label {
+        background: #E8EFF7 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        vertical-align: middle;
+        text-align: center;
+      }
+      .row-review .excel-col-val {
+        padding: 6px 10px !important;
+        vertical-align: middle;
+      }
+      .print-review-display {
+        display: block !important;
+        font-size: 12px !important;
+      }
+      .review-textarea {
+        display: none !important;
+      }
       .slip-signatures {
         display: grid !important;
+        margin-top: 12px !important;
+        padding: 4px 14px 14px !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      .sign-img-wrapper {
+        min-height: 46px !important;
+        margin: 2px 0 3px !important;
+      }
+      .signature-img {
+        max-height: 46px !important;
+        max-width: 135px !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .sign-blank-space {
+        min-height: 46px !important;
+        margin: 2px 0 3px !important;
+      }
+      .sign-name {
+        font-size: 12px !important;
       }
     }
   </style>
@@ -423,6 +532,10 @@
               </select>
             </div>
 
+            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #1E293B; cursor: pointer; user-select: none;">
+              <input type="checkbox" id="chk-show-signature" checked style="cursor: pointer; width: 15px; height: 15px; accent-color: #1D4ED8;">
+              <span>Hiện chữ ký Người Lập Phiếu</span>
+            </label>
             <span id="save-status-indicator" style="font-weight: 700; font-size: 12px; color: #059669;"></span>
           </div>
 
@@ -492,6 +605,18 @@
                   <input type="text" class="slip-cell-input" id="inp-base-salary" value="0" oninput="onSlipNumberInput(this); calcSlipLive();">
                 </td>
               </tr>
+              <!-- 4b. CHI TIẾT THỬ VIỆC / CHÍNH THỨC -->
+              <tr id="row-probation-official" style="display: none; background: #FFFDF5;">
+                <td class="excel-col-label" style="font-size: 12px; color: #B45309; vertical-align: top;">
+                  <div style="font-weight: 700;"><i class="fas fa-tags"></i> Chế độ lương</div>
+                  <div style="font-size: 11px; font-weight: normal; color: #92400E;">Thử việc & Chính thức</div>
+                </td>
+                <td class="excel-col-val" style="font-size: 12px; padding: 6px 12px;">
+                  <div id="disp-probation-box" style="line-height: 1.5; color: #92400E;">
+                    <!-- Điền bằng JS -->
+                  </div>
+                </td>
+              </tr>
               <!-- 5. LƯƠNG THEO NGÀY (CÔNG THỨC) -->
               <tr>
                 <td class="excel-col-label">Lương theo ngày</td>
@@ -510,7 +635,14 @@
               <tr>
                 <td class="excel-col-label">Số ca</td>
                 <td class="excel-col-val">
-                  <input type="number" step="any" class="slip-cell-input" id="inp-slots" value="0" oninput="calcSlipLive();">
+                  <input type="number" step="any" class="slip-cell-input" id="inp-slots" value="0" oninput="onSlipSlotsInput();">
+                </td>
+              </tr>
+              <!-- 7b. ĐƠN GIÁ 1 CA -->
+              <tr id="row-slot-rate">
+                <td class="excel-col-label">Đơn giá 1 ca</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-slot-rate" value="0 đ" oninput="onSlipSlotRateInput();" style="color: #1D4ED8; font-weight: 600;">
                 </td>
               </tr>
               <!-- 8. SỐ TIỀN (TIỀN CA / TĂNG CA) -->
@@ -518,6 +650,13 @@
                 <td class="excel-col-label">Số tiền</td>
                 <td class="excel-col-val">
                   <input type="text" class="slip-cell-input" id="inp-slot-money" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                </td>
+              </tr>
+              <!-- 8b. TIỀN BÁN TRÚ -->
+              <tr id="row-boarding" style="display: none;">
+                <td class="excel-col-label">Bán trú</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-boarding" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
                 </td>
               </tr>
               <!-- 9. CHUYÊN CẦN (ĐIỀN TỔNG THEO THÁNG) -->
@@ -537,6 +676,13 @@
                   <input type="text" class="slip-cell-input highlight-cc" id="inp-attendance" value="0 đ" placeholder="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" title="Tiền chuyên cần là tùy tháng Giám đốc sẽ cho (không để cố định)">
                 </td>
               </tr>
+              <!-- 9b. HIỆU QUẢ CÔNG VIỆC -->
+              <tr>
+                <td class="excel-col-label">Hiệu quả công việc</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-efficiency" value="0 đ" placeholder="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #047857; font-weight: 600;">
+                </td>
+              </tr>
               <!-- 10. TIỀN CƠM -->
               <tr>
                 <td class="excel-col-label">Cơm</td>
@@ -549,6 +695,14 @@
                 <td class="excel-col-label">Thưởng đi lại</td>
                 <td class="excel-col-val">
                   <input type="text" class="slip-cell-input" id="inp-travel" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                </td>
+              </tr>
+
+              <!-- 11b. THƯỞNG KHÁC / ĐI HỌP / TIỀN ÁO -->
+              <tr id="row-bonus" style="display: none;">
+                <td class="excel-col-label" id="lbl-bonus">Thưởng khác / Đi họp</td>
+                <td class="excel-col-val">
+                  <input type="text" class="slip-cell-input" id="inp-bonus" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #047857;">
                 </td>
               </tr>
 
@@ -581,20 +735,27 @@
                 <td class="excel-col-label">Nhận xét</td>
                 <td class="excel-col-val">
                   <textarea class="review-textarea" id="inp-director-review" placeholder="Nhận xét tình hình công tác, năng lực giảng dạy của cô..."></textarea>
+                  <div class="print-review-display" id="disp-print-review"></div>
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <!-- CHỮ KÝ DƯỚI CHÂN KHI IN RA GIẤY -->
-          <div class="slip-signatures">
+          <!-- CHỮ KÝ DƯỚI CHÂN KHI IN RA GIẤY / XUẤT EXCEL -->
+          <div class="slip-signatures" id="payslip-signatures">
             <div class="sign-col">
               <h4>Người Lập Phiếu</h4>
-              <div>(Ký, ghi rõ họ tên)</div>
+              <div class="sign-sub">(Ký, ghi rõ họ tên)</div>
+              <div class="sign-img-wrapper" id="sign-img-wrapper">
+                <img src="../assets/signature.png" alt="Chữ ký Nguyễn Huỳnh Kỹ Thuật" class="signature-img" id="img-director-signature">
+              </div>
+              <div class="sign-name">Nguyễn Huỳnh Kỹ Thuật</div>
             </div>
             <div class="sign-col">
               <h4>Người Nhận Lương</h4>
-              <div>(Ký, ghi rõ họ tên)</div>
+              <div class="sign-sub">(Ký, ghi rõ họ tên)</div>
+              <div class="sign-blank-space"></div>
+              <div class="sign-name" id="disp-sign-emp-name">Họ và tên</div>
             </div>
           </div>
         </div>
@@ -663,6 +824,17 @@
 
       document.getElementById('btn-save-slip').addEventListener('click', saveCurrentPayslip);
       document.getElementById('btn-export-slip-excel').addEventListener('click', exportExcelSingleSlip);
+
+      document.getElementById('chk-show-signature')?.addEventListener('change', (e) => {
+        const imgWrap = document.getElementById('sign-img-wrapper');
+        if (imgWrap) {
+          imgWrap.style.visibility = e.target.checked ? 'visible' : 'hidden';
+        }
+      });
+
+      document.getElementById('inp-director-review')?.addEventListener('input', (e) => {
+        updateReviewPrintText(e.target.value);
+      });
 
       document.getElementById('btn-logout')?.addEventListener('click', () => auth.logout());
       document.getElementById('btn-sidebar-collapse')?.addEventListener('click', () => {
@@ -762,6 +934,8 @@
     function populateSlipForm(d) {
       document.getElementById('disp-full-name').textContent = d.full_name;
       document.getElementById('disp-position').textContent = d.position || '-';
+      const signEmpEl = document.getElementById('disp-sign-emp-name');
+      if (signEmpEl) signEmpEl.textContent = d.full_name || '';
 
       const emp = branchEmployees.find(e => e.id == currentEmpId);
       // Luôn lấy Lương cơ bản & Ngày chuẩn cấu hình thực tế từ hồ sơ nhân sự
@@ -782,9 +956,52 @@
       document.getElementById('inp-slots').value = slots;
       document.getElementById('inp-slot-money').value = formatMoney(slotMoney) + ' đ';
 
+      // Đơn giá 1 ca
+      let slotRate = 120000;
+      if (slots > 0 && slotMoney > 0) {
+        slotRate = Math.round(slotMoney / slots);
+      } else if (isFixed) {
+        slotRate = parseFloat(d.probation_hourly_rate || (emp ? (emp.probation_hourly_rate || emp.overtime_rate || 120000) : 120000));
+      } else {
+        slotRate = parseFloat(d.hourly_rate || (emp ? emp.hourly_rate : 120000)) || 120000;
+      }
+      if (document.getElementById('inp-slot-rate')) {
+        document.getElementById('inp-slot-rate').value = formatMoney(slotRate) + ' đ';
+      }
+
+      // Với giáo viên làm theo giờ (HOURLY)
+      if (!isFixed) {
+        document.getElementById('inp-base-salary').value = 'Theo ca dạy';
+        document.getElementById('inp-base-salary').style.color = '#1D4ED8';
+        document.getElementById('disp-daily-rate').textContent = '-';
+        document.getElementById('inp-days-x').value = 0;
+      } else {
+        document.getElementById('inp-base-salary').style.color = '#0F172A';
+      }
+
+      // Tiền bán trú (boarding_pay)
+      const boardPay = parseFloat(d.boarding_pay || 0);
+      const rowBoarding = document.getElementById('row-boarding');
+      const inpBoarding = document.getElementById('inp-boarding');
+      if (rowBoarding && inpBoarding) {
+        if (boardPay > 0) {
+          rowBoarding.style.display = '';
+          inpBoarding.value = formatMoney(boardPay) + ' đ';
+        } else {
+          rowBoarding.style.display = 'none';
+          inpBoarding.value = '0 đ';
+        }
+      }
+
       // Chuyên cần (Dữ liệu phát sinh)
       const att = parseFloat(d.attendance_allowance || 0);
       document.getElementById('inp-attendance').value = formatMoney(att) + ' đ';
+
+      // Hiệu quả công việc
+      const eff = parseFloat(d.efficiency_bonus !== undefined ? d.efficiency_bonus : (emp ? emp.efficiency_bonus : 0) || 0);
+      if (document.getElementById('inp-efficiency')) {
+        document.getElementById('inp-efficiency').value = formatMoney(eff) + ' đ';
+      }
 
       // Tiền cơm: nếu bản ghi có lưu tiền cơm > 0 thì dùng; nếu chưa có thì tính daysX * 25k (nếu có hưởng cơm)
       const hasLunch = emp ? (emp.has_lunch_allowance == 1) : (!d.has_lunch_allowance || d.has_lunch_allowance == 1);
@@ -799,29 +1016,156 @@
         : parseFloat(d.emp_travel_allowance || (emp ? emp.travel_allowance : 0));
       document.getElementById('inp-travel').value = formatMoney(travel) + ' đ';
 
+      // Thưởng khác / Đi họp / Tiền áo (bonus)
+      const bonus = parseFloat(d.bonus || 0);
+      const rowBonus = document.getElementById('row-bonus');
+      const inpBonus = document.getElementById('inp-bonus');
+      const lblBonus = document.getElementById('lbl-bonus');
+      if (rowBonus && inpBonus) {
+        if (bonus > 0) {
+          rowBonus.style.display = '';
+          inpBonus.value = formatMoney(bonus) + ' đ';
+          if (lblBonus) {
+            if (currentEmpId == 7 || currentEmpId == 16) {
+              lblBonus.textContent = 'Tiền áo';
+            } else if (currentEmpId == 24 || currentEmpId == 15) {
+              lblBonus.textContent = 'Tiền đi họp';
+            } else {
+              lblBonus.textContent = 'Thưởng khác';
+            }
+          }
+        } else {
+          rowBonus.style.display = 'none';
+          inpBonus.value = '0 đ';
+        }
+      }
+
       // Khấu trừ
       const deduct = parseFloat(d.deductions || 0);
       document.getElementById('inp-deductions').value = formatMoney(deduct) + ' đ';
 
       // Nhận xét
-      document.getElementById('inp-director-review').value = d.director_review || d.note || (emp ? emp.notes : '') || '';
+      const reviewVal = d.director_review || d.note || (emp ? emp.notes : '') || '';
+      document.getElementById('inp-director-review').value = reviewVal;
+      updateReviewPrintText(reviewVal);
+
+      // Hiển thị chi tiết lương thử việc & chính thức nếu có
+      renderProbationOfficialRow(d, emp);
 
       calcSlipLive();
+    }
+
+    // Hiển thị khung ghi rõ Lương thử việc & Lương chính thức (cả lương tháng & ca dạy)
+    function renderProbationOfficialRow(d, emp) {
+      const isFixed = (emp ? emp.salary_type : d?.salary_type) === 'FIXED';
+      const rowProb = document.getElementById('row-probation-official');
+      const boxProb = document.getElementById('disp-probation-box');
+      if (!rowProb || !boxProb) return;
+
+      if (isFixed) {
+        const probSal = parseFloat(d?.probation_salary || emp?.probation_salary || 0);
+        const offSal = parseFloat(d?.official_salary || emp?.official_salary || (d?.base_salary || emp?.base_salary || 0));
+        const probH = parseFloat(d?.probation_hourly_rate || emp?.probation_hourly_rate || 0);
+        const offH = parseFloat(d?.official_hourly_rate || emp?.official_hourly_rate || 0);
+
+        if (probSal > 0) {
+          rowProb.style.display = '';
+          let caNote = '';
+          if (probH > 0 && offH > 0) {
+            caNote = `<span style="background: #F1F5F9; color: #334155; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; border: 1px solid #CBD5E1;">
+              <i class="fas fa-business-time"></i> Ca TV: ${formatMoney(probH)} đ/ca | Ca CT: ${formatMoney(offH)} đ/ca
+            </span>`;
+          }
+          boxProb.innerHTML = `
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 4px;">
+              <span style="background: #FEF3C7; color: #92400E; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #FCD34D;">
+                <i class="fas fa-user-clock"></i> Thử việc: ${formatMoney(probSal)} đ
+              </span>
+              <span style="background: #ECFDF5; color: #065F46; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #A7F3D0;">
+                <i class="fas fa-check-circle"></i> Chính thức: ${formatMoney(offSal)} đ
+              </span>
+              ${caNote}
+            </div>
+            <div style="font-size: 11px; color: #475569; font-style: italic; line-height: 1.4;">
+              * Đã chia rõ tỷ lệ ngày công giữa giai đoạn thử việc và chính thức theo hợp đồng.
+            </div>
+          `;
+        } else {
+          rowProb.style.display = 'none';
+        }
+      } else {
+        // Giáo viên làm theo giờ (HOURLY)
+        const probH = parseFloat(d?.probation_hourly_rate || emp?.probation_hourly_rate || 0);
+        const offH = parseFloat(d?.official_hourly_rate || emp?.official_hourly_rate || (emp ? emp.hourly_rate : 120000));
+        const noteText = (emp && emp.notes) ? emp.notes : '';
+
+        rowProb.style.display = '';
+        if (probH > 0 && probH !== offH) {
+          boxProb.innerHTML = `
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 4px;">
+              <span style="background: #FEF3C7; color: #92400E; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #FCD34D;">
+                <i class="fas fa-user-clock"></i> Ca thử việc: ${formatMoney(probH)} đ/ca
+              </span>
+              <span style="background: #ECFDF5; color: #065F46; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #A7F3D0;">
+                <i class="fas fa-check-circle"></i> Ca chính thức: ${formatMoney(offH)} đ/ca
+              </span>
+            </div>
+            <div style="font-size: 11px; color: #475569; font-style: italic; line-height: 1.4;">
+              ${noteText || '* Ghi nhận đơn giá ca dạy theo thỏa thuận thử việc và chính thức.'}
+            </div>
+          `;
+        } else {
+          boxProb.innerHTML = `
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 4px;">
+              <span style="background: #ECFDF5; color: #065F46; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #A7F3D0;">
+                <i class="fas fa-check-circle"></i> Ca chính thức: ${formatMoney(offH)} đ/ca
+              </span>
+            </div>
+            <div style="font-size: 11px; color: #475569; font-style: italic; line-height: 1.4;">
+              * Giáo viên giảng dạy theo ca chuyên môn.
+            </div>
+          `;
+        }
+      }
     }
 
     // Điền mặc định từ hồ sơ nhân sự cố định nếu tháng đó chưa từng lưu
     function populateFromEmployeeProfile(emp) {
       if (!emp) return;
+      document.getElementById('disp-full-name').textContent = emp.full_name;
+      document.getElementById('disp-position').textContent = emp.position || '-';
+      const signEmpEl = document.getElementById('disp-sign-emp-name');
+      if (signEmpEl) signEmpEl.textContent = emp.full_name;
       const baseSalary = parseFloat(emp.base_salary || 0);
       const stdDays = parseFloat(emp.standard_work_days || 26.0);
       const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
       const hasLunch = emp.has_lunch_allowance == 1;
 
-      document.getElementById('inp-base-salary').value = formatMoney(baseSalary);
-      document.getElementById('disp-daily-rate').textContent = formatMoney(dailyRate) + ' đ';
-      document.getElementById('inp-days-x').value = stdDays; // Mặc định đủ ngày công
+      const isFixed = emp.salary_type === 'FIXED';
+      let slotRate = 120000;
+      if (isFixed) {
+        slotRate = parseFloat(emp.overtime_rate || 120000);
+        document.getElementById('inp-base-salary').value = formatMoney(baseSalary);
+        document.getElementById('inp-base-salary').style.color = '#0F172A';
+        document.getElementById('disp-daily-rate').textContent = formatMoney(dailyRate) + ' đ';
+        document.getElementById('inp-days-x').value = stdDays; // Mặc định đủ ngày công
+      } else {
+        slotRate = parseFloat(emp.hourly_rate || 120000);
+        document.getElementById('inp-base-salary').value = 'Theo ca dạy';
+        document.getElementById('inp-base-salary').style.color = '#1D4ED8';
+        document.getElementById('disp-daily-rate').textContent = '-';
+        document.getElementById('inp-days-x').value = 0;
+      }
+      if (document.getElementById('inp-slot-rate')) {
+        document.getElementById('inp-slot-rate').value = formatMoney(slotRate) + ' đ';
+      }
       document.getElementById('inp-slots').value = 0;
       document.getElementById('inp-slot-money').value = '0 đ';
+
+      // Bán trú mặc định = 0 đ
+      const rowBoarding = document.getElementById('row-boarding');
+      if (rowBoarding) rowBoarding.style.display = 'none';
+      if (document.getElementById('inp-boarding')) document.getElementById('inp-boarding').value = '0 đ';
 
       // Chuyên cần ban đầu luôn = 0 đ (chờ GĐ điền)
       document.getElementById('inp-attendance').value = '0 đ';
@@ -834,11 +1178,20 @@
       const travel = parseFloat(emp.travel_allowance || 0);
       document.getElementById('inp-travel').value = formatMoney(travel) + ' đ';
 
+      // Thưởng khác / đi họp mặc định = 0 đ
+      const rowBonus = document.getElementById('row-bonus');
+      if (rowBonus) rowBonus.style.display = 'none';
+      if (document.getElementById('inp-bonus')) document.getElementById('inp-bonus').value = '0 đ';
+
       // Khấu trừ
       document.getElementById('inp-deductions').value = '0 đ';
 
       // Nhận xét mặc định từ ghi chú hồ sơ
-      document.getElementById('inp-director-review').value = emp.notes || '';
+      const reviewVal = emp.notes || '';
+      document.getElementById('inp-director-review').value = reviewVal;
+      updateReviewPrintText(reviewVal);
+
+      renderProbationOfficialRow(emp, emp);
 
       calcSlipLive();
     }
@@ -851,20 +1204,34 @@
       const stdDays = emp ? parseFloat(emp.standard_work_days || 26.0) : 26.0;
 
       // Lương 1 ngày
-      const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
-      document.getElementById('disp-daily-rate').textContent = formatMoney(dailyRate) + ' đ';
+      const dailyRateExact = stdDays > 0 ? (baseSalary / stdDays) : 0;
+      document.getElementById('disp-daily-rate').textContent = formatMoney(Math.round(dailyRateExact)) + ' đ';
 
-      // Lương theo ngày công thực tế (Nếu làm đủ ngày chuẩn thì = đúng Lương cơ bản)
-      const salaryByDays = (daysX === stdDays) ? baseSalary : Math.round(dailyRate * daysX);
+      // Lương theo ngày công thực tế (Nếu đã có bản ghi CSDL và chưa sửa ngày công / lương cơ bản thì giữ nguyên để bảo toàn các case chia thử việc/chính thức)
+      let salaryByDays = 0;
+      const isFixed = !emp || emp.salary_type === 'FIXED';
+      if (isFixed) {
+        const isDaysUnchanged = currentSlipData && parseFloat(currentSlipData.total_days_x || 0) === daysX;
+        const isBaseUnchanged = currentSlipData && baseSalary === Math.round(parseFloat(currentSlipData.base_salary || currentSlipData.emp_base_salary || 0));
+
+        if (isDaysUnchanged && isBaseUnchanged && currentSlipData && parseFloat(currentSlipData.salary_by_days) > 0) {
+          salaryByDays = Math.round(parseFloat(currentSlipData.salary_by_days));
+        } else {
+          salaryByDays = (daysX === stdDays) ? baseSalary : Math.round((baseSalary * daysX) / stdDays);
+        }
+      }
 
       const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
+      const boardPay = parseMoney(document.getElementById('inp-boarding')?.value || '0');
       const att = parseMoney(document.getElementById('inp-attendance').value);
+      const eff = parseMoney(document.getElementById('inp-efficiency')?.value || '0');
       const lunch = parseMoney(document.getElementById('inp-lunch').value);
       const travel = parseMoney(document.getElementById('inp-travel').value);
+      const bonus = parseMoney(document.getElementById('inp-bonus')?.value || '0');
       const deduct = parseMoney(document.getElementById('inp-deductions').value);
 
       // TỔNG THU
-      const totalIncome = salaryByDays + slotMoney + att + lunch + travel;
+      const totalIncome = salaryByDays + slotMoney + boardPay + att + eff + lunch + travel + bonus;
       document.getElementById('disp-total-income').textContent = formatMoney(totalIncome) + ' đ';
 
       // THỰC LĨNH
@@ -886,39 +1253,70 @@
       const baseSalary = parseMoney(document.getElementById('inp-base-salary').value);
       const daysX = parseFloat(document.getElementById('inp-days-x').value) || 0;
       const stdDays = emp ? parseFloat(emp.standard_work_days || 26.0) : 26.0;
-      const dailyRate = stdDays > 0 ? Math.round(baseSalary / stdDays) : 0;
-      const salaryByDays = (daysX === stdDays) ? baseSalary : Math.round(dailyRate * daysX);
+      const dailyRateExact = stdDays > 0 ? (baseSalary / stdDays) : 0;
+      const dailyRate = Math.round(dailyRateExact);
+
+      const isFixed = !emp || emp.salary_type === 'FIXED';
+      let salaryByDays = 0;
+      let safeBaseSalary = baseSalary;
+      if (isFixed) {
+        const isDaysUnchanged = currentSlipData && parseFloat(currentSlipData.total_days_x || 0) === daysX;
+        const isBaseUnchanged = currentSlipData && baseSalary === Math.round(parseFloat(currentSlipData.base_salary || currentSlipData.emp_base_salary || 0));
+        if (isDaysUnchanged && isBaseUnchanged && currentSlipData && parseFloat(currentSlipData.salary_by_days) > 0) {
+          salaryByDays = Math.round(parseFloat(currentSlipData.salary_by_days));
+        } else {
+          salaryByDays = (daysX === stdDays) ? baseSalary : Math.round((baseSalary * daysX) / stdDays);
+        }
+      } else {
+        safeBaseSalary = 0;
+      }
 
       const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
+      const slotRate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
       const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
+      const boardPay = parseMoney(document.getElementById('inp-boarding')?.value || '0');
       const att = parseMoney(document.getElementById('inp-attendance').value);
+      const eff = parseMoney(document.getElementById('inp-efficiency')?.value || '0');
       const lunch = parseMoney(document.getElementById('inp-lunch').value);
       const travel = parseMoney(document.getElementById('inp-travel').value);
+      const bonus = parseMoney(document.getElementById('inp-bonus')?.value || '0');
       const deduct = parseMoney(document.getElementById('inp-deductions').value);
       const review = document.getElementById('inp-director-review').value.trim();
 
-      const totalIncome = salaryByDays + slotMoney + att + lunch + travel;
+      const totalIncome = salaryByDays + slotMoney + boardPay + att + eff + lunch + travel + bonus;
       const netSalary = Math.max(0, totalIncome - deduct);
+
+      const probationSal = parseFloat(currentSlipData?.probation_salary || emp?.probation_salary || 0);
+      const officialSal = parseFloat(currentSlipData?.official_salary || emp?.official_salary || baseSalary);
+      const probH = parseFloat(currentSlipData?.probation_hourly_rate || emp?.probation_hourly_rate || 0);
+      const offH = parseFloat(currentSlipData?.official_hourly_rate || emp?.official_hourly_rate || (slotRate || 120000));
 
       const payload = {
         employee_id: currentEmpId,
         month: currentMonth,
         year: currentYear,
         salary_type: emp ? emp.salary_type : 'FIXED',
-        base_salary: baseSalary,
+        base_salary: safeBaseSalary,
+        hourly_rate: slotRate,
+        probation_salary: probationSal,
+        official_salary: officialSal,
+        probation_hourly_rate: probH,
+        official_hourly_rate: offH,
         standard_work_days: stdDays,
         daily_salary_rate: dailyRate,
-        total_days_x: daysX,
+        total_days_x: isFixed ? daysX : 0,
         salary_by_days: salaryByDays,
         total_slots: (emp && emp.salary_type === 'HOURLY') ? slots : 0,
         salary_by_slots: (emp && emp.salary_type === 'HOURLY') ? slotMoney : 0,
         ot_count: (emp && emp.salary_type === 'FIXED') ? slots : 0,
         total_ot_hours: (emp && emp.salary_type === 'FIXED') ? slots * 1.5 : 0,
         ot_pay: (emp && emp.salary_type === 'FIXED') ? slotMoney : 0,
+        boarding_pay: boardPay,
         attendance_allowance: att,
+        efficiency_bonus: eff,
         lunch_allowance: lunch,
         travel_allowance: travel,
-        bonus: 0,
+        bonus: bonus,
         deductions: deduct,
         net_salary: netSalary,
         director_review: review,
@@ -992,6 +1390,7 @@
       const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
       const slotMoney = parseMoney(document.getElementById('inp-slot-money').value);
       const att = parseMoney(document.getElementById('inp-attendance').value);
+      const eff = parseMoney(document.getElementById('inp-efficiency')?.value || '0');
       const lunch = parseMoney(document.getElementById('inp-lunch').value);
       const travel = parseMoney(document.getElementById('inp-travel').value);
       const totalIncome = parseMoney(document.getElementById('disp-total-income').textContent);
@@ -999,24 +1398,75 @@
       const netSalary = parseMoney(document.getElementById('disp-net-salary').textContent);
       const review = document.getElementById('inp-director-review').value;
 
+      const probSal = parseFloat(currentSlipData?.probation_salary || emp?.probation_salary || 0);
+      const offSal = parseFloat(currentSlipData?.official_salary || emp?.official_salary || baseSalary);
+
+      const isFixed = (emp ? emp.salary_type : currentSlipData?.salary_type) === 'FIXED';
+      const slotRate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
+      const probH = parseFloat(currentSlipData?.probation_hourly_rate || emp?.probation_hourly_rate || 0);
+      const offH = parseFloat(currentSlipData?.official_hourly_rate || emp?.official_hourly_rate || (emp ? emp.hourly_rate : 120000));
+
       const rowsData = [
         ['Họ và tên', emp ? emp.full_name : '', 'text-bold'],
         ['Chức vụ', emp ? emp.position : '', 'text'],
         ['Tháng', `th${currentMonth}-${shortYear}`, 'text'],
-        ['', '', 'spacer'],
-        ['Lương cơ bản', baseSalary, 'currency-plain'],
-        ['Lương theo ngày', dailyRate, 'currency'],
-        ['Số ngày', daysX, 'number'],
-        ['Số ca', slots, 'number'],
-        ['Số tiền', slotMoney, 'currency'],
+        ['', '', 'spacer']
+      ];
+
+      if (isFixed) {
+        rowsData.push(['Lương cơ bản', baseSalary, 'currency-plain']);
+        if (probSal > 0) {
+          rowsData.push(['Thử việc & Chính thức', `TV: ${formatMoney(probSal)} đ | CT: ${formatMoney(offSal)} đ`, 'text']);
+        }
+        rowsData.push(
+          ['Lương theo ngày', dailyRate, 'currency'],
+          ['Số ngày', daysX, 'number'],
+          ['Số ca', slots, 'number']
+        );
+        if (slots > 0) {
+          rowsData.push(['Đơn giá 1 ca', slotRate, 'currency']);
+        }
+        rowsData.push(['Số tiền', slotMoney, 'currency']);
+      } else {
+        rowsData.push(['Lương cơ bản', 'Theo ca dạy', 'text']);
+        if (probH > 0 && probH !== offH) {
+          rowsData.push(['Chế độ ca', `Ca TV: ${formatMoney(probH)} đ/ca | Ca CT: ${formatMoney(offH)} đ/ca`, 'text']);
+        } else {
+          rowsData.push(['Chế độ ca', `Ca chính thức: ${formatMoney(offH)} đ/ca`, 'text']);
+        }
+        rowsData.push(
+          ['Lương theo ngày', '-', 'text'],
+          ['Số ngày', 0, 'number'],
+          ['Số ca', slots, 'number'],
+          ['Đơn giá 1 ca', slotRate, 'currency'],
+          ['Số tiền', slotMoney, 'currency']
+        );
+      }
+
+      const boardPay = parseMoney(document.getElementById('inp-boarding')?.value || '0');
+      if (boardPay > 0) {
+        rowsData.push(['Bán trú', boardPay, 'currency']);
+      }
+
+      rowsData.push(
         ['Chuyên cần', att, 'currency'],
+        ['Hiệu quả công việc', eff, 'currency'],
         ['Cơm', lunch, 'currency'],
-        ['Thưởng đi lại', travel, 'currency'],
+        ['Thưởng đi lại', travel, 'currency']
+      );
+
+      const bonus = parseMoney(document.getElementById('inp-bonus')?.value || '0');
+      if (bonus > 0) {
+        const bonusLabel = document.getElementById('lbl-bonus')?.textContent || 'Thưởng khác';
+        rowsData.push([bonusLabel, bonus, 'currency']);
+      }
+
+      rowsData.push(
         ['TỔNG THU', totalIncome, 'currency-bold'],
         ['Khấu trừ', deduct, 'currency'],
         ['THỰC LĨNH', netSalary, 'currency-net'],
         ['Nhận xét', review, 'text-review']
-      ];
+      );
 
       let rIdx = 3;
       rowsData.forEach(([label, val, type]) => {
@@ -1063,6 +1513,68 @@
         rIdx++;
       });
 
+      // Dòng trống cách biệt
+      const blankRow = sheet.getRow(rIdx++);
+      blankRow.height = 14;
+
+      // Tiêu đề 2 cột chữ ký
+      const signTitleRow = sheet.getRow(rIdx++);
+      signTitleRow.height = 20;
+      signTitleRow.getCell(1).value = 'NGƯỜI LẬP PHIẾU';
+      signTitleRow.getCell(1).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+      signTitleRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      signTitleRow.getCell(2).value = 'NGƯỜI NHẬN LƯƠNG';
+      signTitleRow.getCell(2).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+      signTitleRow.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Dòng phụ chú
+      const signSubRow = sheet.getRow(rIdx++);
+      signSubRow.height = 17;
+      signSubRow.getCell(1).value = '(Ký, ghi rõ họ tên)';
+      signSubRow.getCell(1).font = { name: 'Segoe UI', size: 9, italic: true, color: { argb: 'FF64748B' } };
+      signSubRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      signSubRow.getCell(2).value = '(Ký, ghi rõ họ tên)';
+      signSubRow.getCell(2).font = { name: 'Segoe UI', size: 9, italic: true, color: { argb: 'FF64748B' } };
+      signSubRow.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Dòng khoảng trống để chèn chữ ký
+      const signImageRowIdx = rIdx;
+      const signSpaceRow = sheet.getRow(rIdx++);
+      signSpaceRow.height = 55;
+
+      // Dòng họ tên
+      const signNameRow = sheet.getRow(rIdx++);
+      signNameRow.height = 22;
+      signNameRow.getCell(1).value = 'Nguyễn Huỳnh Kỹ Thuật';
+      signNameRow.getCell(1).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+      signNameRow.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      signNameRow.getCell(2).value = emp ? emp.full_name : '';
+      signNameRow.getCell(2).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+      signNameRow.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Chèn ảnh chữ ký điện tử nếu checkbox được bật
+      const showSig = document.getElementById('chk-show-signature') ? document.getElementById('chk-show-signature').checked : true;
+      if (showSig) {
+        try {
+          const sigBase64 = await getSignatureBase64();
+          if (sigBase64) {
+            const imageId = workbook.addImage({
+              base64: sigBase64,
+              extension: 'png'
+            });
+            sheet.addImage(imageId, {
+              tl: { col: 0.15, row: signImageRowIdx - 1 + 0.08 },
+              ext: { width: 140, height: 48 }
+            });
+          }
+        } catch (errSig) {
+          console.warn('Lỗi chèn chữ ký vào Excel:', errSig);
+        }
+      }
+
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const safeName = (emp ? emp.full_name : 'GiaoVien').replace(/\s+/g, '_');
@@ -1070,6 +1582,37 @@
 
       saveAs(blob, filename);
       utils.showToast(`Đã xuất file Excel phiếu lương của ${empName}!`, 'success');
+    }
+
+    // Helper nạp ảnh chữ ký dạng Base64
+    let _cachedSignatureBase64 = null;
+    async function getSignatureBase64() {
+      if (_cachedSignatureBase64) return _cachedSignatureBase64;
+      try {
+        const res = await fetch('../assets/signature.png');
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            _cachedSignatureBase64 = reader.result;
+            resolve(_cachedSignatureBase64);
+          };
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.warn('Không thể nạp chữ ký:', e);
+        return null;
+      }
+    }
+
+    // Đồng bộ chữ nhận xét sang vùng in văn bản trang nhã
+    function updateReviewPrintText(val) {
+      const dispEl = document.getElementById('disp-print-review');
+      if (dispEl) {
+        dispEl.textContent = val ? String(val).trim() : '';
+      }
     }
 
     // Helper tiện ích
@@ -1087,6 +1630,26 @@
     function onSlipNumberInput(inputEl) {
       const val = parseMoney(inputEl.value);
       inputEl.value = formatMoney(val) + ' đ';
+    }
+
+    function onSlipSlotsInput() {
+      const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
+      const rate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
+      if (rate > 0) {
+        document.getElementById('inp-slot-money').value = formatMoney(Math.round(slots * rate)) + ' đ';
+      }
+      calcSlipLive();
+    }
+
+    function onSlipSlotRateInput() {
+      const inputEl = document.getElementById('inp-slot-rate');
+      const rate = parseMoney(inputEl.value);
+      inputEl.value = formatMoney(rate) + ' đ';
+      const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
+      if (rate > 0 && slots > 0) {
+        document.getElementById('inp-slot-money').value = formatMoney(Math.round(slots * rate)) + ' đ';
+      }
+      calcSlipLive();
     }
   </script>
 </body>

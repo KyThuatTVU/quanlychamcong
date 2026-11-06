@@ -204,12 +204,12 @@
               <div class="grid-3">
                 <div class="form-group">
                   <label class="form-label">Lương cơ bản tháng (VNĐ) <span class="required">*</span></label>
-                  <input type="number" class="form-control" id="emp-form-base-salary" placeholder="VD: 7500000" step="100000" oninput="calcEmpDailyRateLive()">
+                  <input type="number" class="form-control" id="emp-form-base-salary" placeholder="VD: 5040000" step="100000" oninput="calcEmpDailyRateLive()">
                 </div>
                 <div class="form-group">
                   <label class="form-label">Ngày công chuẩn (ngày) <span class="required">*</span></label>
-                  <input type="number" step="0.5" class="form-control" id="emp-form-std-days" value="26.0" placeholder="VD: 26 hoặc 21" oninput="calcEmpDailyRateLive()">
-                  <span class="form-hint">26 ngày (chuẩn), 21 ngày (T2-T6), 13 ngày (ca tối)</span>
+                  <input type="number" step="0.5" class="form-control" id="emp-form-std-days" value="27.0" placeholder="VD: 27 hoặc 22" oninput="calcEmpDailyRateLive()">
+                  <span class="form-hint">27 ngày (chuẩn cơ sở), 22 ngày (cô Linh)</span>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Lương / ngày (VNĐ)</label>
@@ -218,16 +218,33 @@
                 </div>
               </div>
 
-              <div class="grid-2">
+              <div class="grid-2" style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 14px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="color: #475569;">Lương thử việc (VNĐ/tháng)</label>
+                  <input type="number" class="form-control" id="emp-form-probation-salary" placeholder="VD: 3800000, 5500000" step="100000">
+                  <span class="form-hint">Mức lương trong giai đoạn thử việc</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" style="color: #475569;">Lương chính thức (VNĐ/tháng)</label>
+                  <input type="number" class="form-control" id="emp-form-official-salary" placeholder="VD: 4256000, 6000000" step="100000">
+                  <span class="form-hint">Mức lương sau khi lên chính thức</span>
+                </div>
+              </div>
+
+              <div class="grid-3">
                 <div class="form-group">
-                  <label class="form-label">Thưởng đi lại / Xăng xe cố định (VNĐ/tháng)</label>
+                  <label class="form-label">Thưởng Đi Lại (VNĐ/tháng)</label>
                   <input type="number" class="form-control" id="emp-form-travel-rate" placeholder="0" step="50000">
-                  <span class="form-hint">Phụ cấp đi lại thỏa thuận trong hợp đồng (nếu có)</span>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Chế độ phụ cấp cơm trưa (25.000đ/ngày làm)</label>
+                  <label class="form-label">Thưởng Hiệu Quả CV (VNĐ)</label>
+                  <input type="number" class="form-control" id="emp-form-efficiency-bonus" placeholder="0" step="50000">
+                  <span class="form-hint">VD: 100k, 200k, 400k...</span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Chế độ cơm trưa (25k/ngày)</label>
                   <select class="form-control" id="emp-form-has-lunch">
-                    <option value="1">Có hưởng (25.000đ × Ngày công thực tế X)</option>
+                    <option value="1">Có hưởng (25k × Ngày X)</option>
                     <option value="0">Không hưởng (0 ₫)</option>
                   </select>
                 </div>

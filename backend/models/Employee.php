@@ -28,9 +28,15 @@ class Employee {
             if (!in_array('has_lunch_allowance', $cols)) {
                 $this->db->exec("ALTER TABLE employees ADD COLUMN has_lunch_allowance TINYINT(1) DEFAULT 1 COMMENT '1 = Nhận cơm 25k/ngày, 0 = Không nhận' AFTER travel_allowance");
             }
-
-            // Đồng bộ dữ liệu mẫu định mức tháng 9 cho 8 cô chi nhánh Càng Long
-            $this->syncSeptemberSampleProfiles();
+            if (!in_array('probation_salary', $cols)) {
+                $this->db->exec("ALTER TABLE employees ADD COLUMN probation_salary DECIMAL(12,2) DEFAULT 0 COMMENT 'Lương thử việc' AFTER base_salary");
+            }
+            if (!in_array('official_salary', $cols)) {
+                $this->db->exec("ALTER TABLE employees ADD COLUMN official_salary DECIMAL(12,2) DEFAULT 0 COMMENT 'Lương chính thức' AFTER probation_salary");
+            }
+            if (!in_array('efficiency_bonus', $cols)) {
+                $this->db->exec("ALTER TABLE employees ADD COLUMN efficiency_bonus DECIMAL(12,2) DEFAULT 0 COMMENT 'Thưởng hiệu quả công việc' AFTER attendance_allowance");
+            }
         } catch (Throwable $e) {
             // Bỏ qua lỗi nếu đã tồn tại
         }
@@ -257,12 +263,14 @@ class Employee {
     public function create(array $data): int {
         $sql = "INSERT INTO employees (
             branch_id, employee_code, full_name, position, phone, salary_type,
-            base_salary, hourly_rate, overtime_rate, attendance_allowance, boarding_allowance,
+            base_salary, probation_salary, official_salary, hourly_rate, overtime_rate,
+            attendance_allowance, efficiency_bonus, boarding_allowance,
             travel_allowance, has_lunch_allowance, other_allowance, time_frame, standard_hours, standard_work_days,
             default_time_in, default_time_out, work_schedule, status, notes
         ) VALUES (
             :branch_id, :employee_code, :full_name, :position, :phone, :salary_type,
-            :base_salary, :hourly_rate, :overtime_rate, :attendance_allowance, :boarding_allowance,
+            :base_salary, :probation_salary, :official_salary, :hourly_rate, :overtime_rate,
+            :attendance_allowance, :efficiency_bonus, :boarding_allowance,
             :travel_allowance, :has_lunch_allowance, :other_allowance, :time_frame, :standard_hours, :standard_work_days,
             :default_time_in, :default_time_out, :work_schedule, :status, :notes
         )";
@@ -276,12 +284,15 @@ class Employee {
             ':phone' => $data['phone'] ?? '',
             ':salary_type' => $data['salary_type'] ?? 'FIXED',
             ':base_salary' => $data['base_salary'] ?? 0,
+            ':probation_salary' => $data['probation_salary'] ?? 0,
+            ':official_salary' => $data['official_salary'] ?? ($data['base_salary'] ?? 0),
             ':hourly_rate' => $data['hourly_rate'] ?? 0,
             ':overtime_rate' => $data['overtime_rate'] ?? 150000,
             ':attendance_allowance' => $data['attendance_allowance'] ?? 0,
+            ':efficiency_bonus' => $data['efficiency_bonus'] ?? 0,
             ':boarding_allowance' => $data['boarding_allowance'] ?? 0,
             ':travel_allowance' => $data['travel_allowance'] ?? 0,
-            ':has_lunch_allowance' => isset($data['has_lunch_allowance']) ? (int)$data['has_lunch_allowance'] : 1,
+            ':has_lunch_allowance' => ((int)($data['branch_id'] ?? 0) === 2) ? 0 : (isset($data['has_lunch_allowance']) ? (int)$data['has_lunch_allowance'] : 1),
             ':other_allowance' => $data['other_allowance'] ?? 0,
             ':time_frame' => $data['time_frame'] ?? '',
             ':standard_hours' => $data['standard_hours'] ?? 8.0,
@@ -319,9 +330,12 @@ class Employee {
             phone = :phone,
             salary_type = :salary_type,
             base_salary = :base_salary,
+            probation_salary = :probation_salary,
+            official_salary = :official_salary,
             hourly_rate = :hourly_rate,
             overtime_rate = :overtime_rate,
             attendance_allowance = :attendance_allowance,
+            efficiency_bonus = :efficiency_bonus,
             boarding_allowance = :boarding_allowance,
             travel_allowance = :travel_allowance,
             has_lunch_allowance = :has_lunch_allowance,
@@ -345,12 +359,15 @@ class Employee {
             ':phone' => $data['phone'] ?? '',
             ':salary_type' => $data['salary_type'] ?? 'FIXED',
             ':base_salary' => $data['base_salary'] ?? 0,
+            ':probation_salary' => $data['probation_salary'] ?? 0,
+            ':official_salary' => $data['official_salary'] ?? ($data['base_salary'] ?? 0),
             ':hourly_rate' => $data['hourly_rate'] ?? 0,
             ':overtime_rate' => $data['overtime_rate'] ?? 150000,
             ':attendance_allowance' => $data['attendance_allowance'] ?? 0,
+            ':efficiency_bonus' => $data['efficiency_bonus'] ?? 0,
             ':boarding_allowance' => $data['boarding_allowance'] ?? 0,
             ':travel_allowance' => $data['travel_allowance'] ?? 0,
-            ':has_lunch_allowance' => isset($data['has_lunch_allowance']) ? (int)$data['has_lunch_allowance'] : 1,
+            ':has_lunch_allowance' => ((int)($data['branch_id'] ?? 0) === 2) ? 0 : (isset($data['has_lunch_allowance']) ? (int)$data['has_lunch_allowance'] : 1),
             ':other_allowance' => $data['other_allowance'] ?? 0,
             ':time_frame' => $data['time_frame'] ?? '',
             ':standard_hours' => $data['standard_hours'] ?? 8.0,

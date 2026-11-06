@@ -160,9 +160,22 @@ function filterAndRender(searchTerm = '') {
     const baseSal = isFixed ? parseFloat(emp.base_salary || 0) : 0;
     const dailyRate = (isFixed && stdDays > 0) ? Math.round(baseSal / stdDays) : 0;
 
-    const salaryDisplay = isFixed 
+    let salaryDisplay = isFixed 
       ? `<strong>${utils.formatCurrency(emp.base_salary)}</strong>` 
       : `<strong>${utils.formatCurrency(emp.hourly_rate)}</strong>/ca`;
+
+    if (isFixed && parseFloat(emp.probation_salary || 0) > 0) {
+      salaryDisplay += `
+        <div style="margin-top: 3px; display: flex; flex-direction: column; gap: 2px;">
+          <span style="background: #FEF3C7; color: #92400E; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: 600; text-align: left; border: 1px solid #FCD34D;">
+            ⏳ TV: ${utils.formatCurrency(emp.probation_salary)}
+          </span>
+          <span style="background: #ECFDF5; color: #065F46; font-size: 10px; padding: 1px 4px; border-radius: 3px; font-weight: 600; text-align: left; border: 1px solid #A7F3D0;">
+            ✓ CT: ${utils.formatCurrency(emp.official_salary || emp.base_salary)}
+          </span>
+        </div>
+      `;
+    }
 
     const stdDaysDisplay = isFixed 
       ? `<span class="badge badge-info" style="font-weight: 600;">${stdDays} ngày</span>` 
@@ -320,7 +333,10 @@ window.openEditModal = function(id) {
     if (document.getElementById('emp-form-hourly-att-rate')) document.getElementById('emp-form-hourly-att-rate').value = '0';
   } else {
     document.getElementById('emp-form-base-salary').value = emp.base_salary || '';
-    document.getElementById('emp-form-std-days').value = emp.standard_work_days || '26.0';
+    if (document.getElementById('emp-form-probation-salary')) document.getElementById('emp-form-probation-salary').value = emp.probation_salary || '';
+    if (document.getElementById('emp-form-official-salary')) document.getElementById('emp-form-official-salary').value = emp.official_salary || '';
+    if (document.getElementById('emp-form-efficiency-bonus')) document.getElementById('emp-form-efficiency-bonus').value = emp.efficiency_bonus || '';
+    document.getElementById('emp-form-std-days').value = emp.standard_work_days || '27.0';
     document.getElementById('emp-form-att-rate').value = '0';
     document.getElementById('emp-form-travel-rate').value = emp.travel_allowance || '';
     document.getElementById('emp-form-has-lunch').value = (emp.has_lunch_allowance !== undefined && emp.has_lunch_allowance !== null) ? String(emp.has_lunch_allowance) : '1';
@@ -410,10 +426,14 @@ async function saveEmployee() {
     payload.overtime_rate = 150000;
   } else {
     payload.base_salary = parseFloat(document.getElementById('emp-form-base-salary').value) || 0;
-    payload.standard_work_days = parseFloat(document.getElementById('emp-form-std-days').value) || 26.0;
+    payload.probation_salary = parseFloat(document.getElementById('emp-form-probation-salary')?.value) || 0;
+    payload.official_salary = parseFloat(document.getElementById('emp-form-official-salary')?.value) || (payload.base_salary || 0);
+    payload.efficiency_bonus = parseFloat(document.getElementById('emp-form-efficiency-bonus')?.value) || 0;
+    payload.standard_work_days = parseFloat(document.getElementById('emp-form-std-days').value) || 27.0;
     payload.attendance_allowance = parseFloat(document.getElementById('emp-form-att-rate').value) || 0;
     payload.travel_allowance = parseFloat(document.getElementById('emp-form-travel-rate').value) || 0;
-    payload.has_lunch_allowance = parseInt(document.getElementById('emp-form-has-lunch').value);
+    const selectedBranchId = parseInt(document.getElementById('emp-form-branch')?.value || '1');
+    payload.has_lunch_allowance = (selectedBranchId === 2) ? 0 : parseInt(document.getElementById('emp-form-has-lunch').value);
     payload.overtime_rate = parseFloat(document.getElementById('emp-form-ot-rate').value) || 150000;
     payload.boarding_allowance = parseFloat(document.getElementById('emp-form-board-rate').value) || 0;
     payload.hourly_rate = 0;

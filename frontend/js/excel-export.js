@@ -128,7 +128,7 @@ const excelExporter = {
     const headers = [
       'STT', 'Mã GV', 'Họ và Tên', 'Chức Vụ', 'Lương Cơ Bản', 'Ngày Chuẩn',
       'Lương / Ngày', 'Ngày Công (X)', 'Lương Theo Công', 'Số Ca TC', 'Tiền Tăng Ca',
-      'Phụ Cấp Bán Trú', 'Chuyên Cần', 'Phụ Cấp Cơm', 'Thưởng Đi Lại',
+      'Phụ Cấp Bán Trú', 'Chuyên Cần', 'Hiệu Quả CV', 'Phụ Cấp Cơm', 'Thưởng Đi Lại',
       'Thưởng Khác', 'TỔNG THU', 'Khấu Trừ', 'THỰC LĨNH', 'Nhận Xét của Giám Đốc'
     ];
 
@@ -141,7 +141,7 @@ const excelExporter = {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: (i === 18) ? S.colors.accentGreen : S.colors.primaryNavy }
+        fgColor: { argb: (i === 19) ? S.colors.accentGreen : S.colors.primaryNavy }
       };
       cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       cell.border = this.getThinBorder();
@@ -149,14 +149,14 @@ const excelExporter = {
 
     // Dữ liệu dòng
     let curRowIdx = 7;
-    let sumBase = 0, sumSalaryDays = 0, sumOtHours = 0, sumOt = 0, sumBoard = 0, sumAtt = 0, sumLunch = 0, sumTravel = 0, sumBonus = 0, sumTotalIncome = 0, sumDeduct = 0, sumNet = 0;
+    let sumBase = 0, sumSalaryDays = 0, sumOtHours = 0, sumOt = 0, sumBoard = 0, sumAtt = 0, sumEff = 0, sumLunch = 0, sumTravel = 0, sumBonus = 0, sumTotalIncome = 0, sumDeduct = 0, sumNet = 0;
 
     dataList.forEach((item, idx) => {
       const row = sheet.getRow(curRowIdx);
       row.height = 24;
 
       const baseSalary = parseFloat(item.base_salary || 0);
-      const stdDays = parseFloat(item.standard_work_days || item.emp_std_days || 26.0);
+      const stdDays = parseFloat(item.standard_work_days || item.emp_std_days || 27.0);
       const dailyRate = parseFloat(item.daily_salary_rate || 0) || (stdDays > 0 ? Math.round(baseSalary / stdDays) : 0);
       const daysX = parseFloat(item.total_days_x || 0);
       const salaryByDays = parseFloat(item.salary_by_days || 0);
@@ -165,13 +165,18 @@ const excelExporter = {
       const otPay = parseFloat(item.ot_pay || 0);
       const boardPay = parseFloat(item.boarding_pay || item.boarding_allowance || 0);
       const attPay = parseFloat(item.attendance_allowance || 0);
+      const effPay = parseFloat(item.efficiency_bonus || 0);
       const lunchPay = parseFloat(item.lunch_allowance || 0);
       const travelPay = parseFloat(item.travel_allowance || 0);
       const bonus = parseFloat(item.bonus || 0);
-      const totalIncome = parseFloat(item.total_income || (salaryByDays + otPay + boardPay + attPay + lunchPay + travelPay + bonus));
+      const totalIncome = parseFloat(item.total_income || (salaryByDays + otPay + boardPay + attPay + effPay + lunchPay + travelPay + bonus));
       const deductions = parseFloat(item.deductions || 0);
       const netSalary = parseFloat(item.net_salary || 0);
-      const directorReview = item.director_review || '';
+      let directorReview = item.director_review || item.note || '';
+      if (parseFloat(item.probation_salary || 0) > 0 && !directorReview.includes('TV:')) {
+        const probNote = `[TV: ${utils.formatCurrency(item.probation_salary)} | CT: ${utils.formatCurrency(item.official_salary || item.base_salary)}]`;
+        directorReview = directorReview ? `${probNote} ${directorReview}` : probNote;
+      }
 
       sumBase += baseSalary;
       sumSalaryDays += salaryByDays;
@@ -179,6 +184,7 @@ const excelExporter = {
       sumOt += otPay;
       sumBoard += boardPay;
       sumAtt += attPay;
+      sumEff += effPay;
       sumLunch += lunchPay;
       sumTravel += travelPay;
       sumBonus += bonus;
@@ -204,6 +210,7 @@ const excelExporter = {
         otPay,
         boardPay,
         attPay,
+        effPay,
         lunchPay,
         travelPay,
         bonus,
@@ -285,16 +292,17 @@ const excelExporter = {
       { col: 11, val: sumOt },
       { col: 12, val: sumBoard },
       { col: 13, val: sumAtt },
-      { col: 14, val: sumLunch },
-      { col: 15, val: sumTravel },
-      { col: 16, val: sumBonus },
-      { col: 17, val: sumTotalIncome },
-      { col: 18, val: sumDeduct },
-      { col: 19, val: sumNet }
+      { col: 14, val: sumEff },
+      { col: 15, val: sumLunch },
+      { col: 16, val: sumTravel },
+      { col: 17, val: sumBonus },
+      { col: 18, val: sumTotalIncome },
+      { col: 19, val: sumDeduct },
+      { col: 20, val: sumNet }
     ];
 
     // Áp dụng định dạng dòng tổng
-    for (let c = 1; c <= 20; c++) {
+    for (let c = 1; c <= 21; c++) {
       const cell = totRow.getCell(c);
       cell.border = {
         top: { style: 'thin', color: { argb: S.colors.borderMedium } },

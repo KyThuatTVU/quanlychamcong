@@ -29,6 +29,15 @@ class Payroll {
             if (!in_array('director_review', $cols)) {
                 $this->db->exec("ALTER TABLE monthly_payroll ADD COLUMN director_review TEXT NULL COMMENT 'Nhận xét của Giám đốc' AFTER note");
             }
+            if (!in_array('efficiency_bonus', $cols)) {
+                $this->db->exec("ALTER TABLE monthly_payroll ADD COLUMN efficiency_bonus DECIMAL(12,2) DEFAULT 0 COMMENT 'Thưởng hiệu quả công việc' AFTER attendance_allowance");
+            }
+            if (!in_array('probation_salary', $cols)) {
+                $this->db->exec("ALTER TABLE monthly_payroll ADD COLUMN probation_salary DECIMAL(12,2) DEFAULT 0 COMMENT 'Lương thử việc' AFTER base_salary");
+            }
+            if (!in_array('official_salary', $cols)) {
+                $this->db->exec("ALTER TABLE monthly_payroll ADD COLUMN official_salary DECIMAL(12,2) DEFAULT 0 COMMENT 'Lương chính thức' AFTER probation_salary");
+            }
             // Đảm bảo số ca và tăng ca hỗ trợ 2 số thập phân (ví dụ 0.67 ca, 1.33 ca)
             $this->db->exec("ALTER TABLE monthly_payroll MODIFY COLUMN ot_count DECIMAL(5,2) DEFAULT 0 COMMENT 'Số ca tăng ca'");
             $this->db->exec("ALTER TABLE monthly_payroll MODIFY COLUMN total_slots DECIMAL(6,2) DEFAULT 0 COMMENT 'Tổng số ca dạy'");
@@ -80,10 +89,10 @@ class Payroll {
             ]);
             $attendanceList = $attStmt->fetchAll();
 
-            // Lấy thông tin điều chỉnh lương (thưởng / khấu trừ / nhận xét / chuyên cần) nếu đã lưu trước đó
-            $prevStmt = $this->db->prepare("SELECT bonus, deductions, note, director_review, attendance_allowance FROM monthly_payroll WHERE employee_id = :emp_id AND month = :m AND year = :y");
+            // Lấy thông tin điều chỉnh lương (thưởng / khấu trừ / nhận xét / chuyên cần / hiệu quả) nếu đã lưu trước đó
+            $prevStmt = $this->db->prepare("SELECT bonus, deductions, note, director_review, attendance_allowance, efficiency_bonus FROM monthly_payroll WHERE employee_id = :emp_id AND month = :m AND year = :y");
             $prevStmt->execute([':emp_id' => $empId, ':m' => $month, ':y' => $year]);
-            $prevPayroll = $prevStmt->fetch() ?: ['bonus' => 0, 'deductions' => 0, 'note' => '', 'director_review' => '', 'attendance_allowance' => null];
+            $prevPayroll = $prevStmt->fetch() ?: ['bonus' => 0, 'deductions' => 0, 'note' => '', 'director_review' => '', 'attendance_allowance' => null, 'efficiency_bonus' => null];
 
             $bonus = (float)($prevPayroll['bonus'] ?? 0);
             $deductions = (float)($prevPayroll['deductions'] ?? 0);
@@ -95,6 +104,11 @@ class Payroll {
             $attAllowance = (isset($prevPayroll['attendance_allowance']) && $prevPayroll['attendance_allowance'] !== null && (float)$prevPayroll['attendance_allowance'] > 0)
                 ? (float)$prevPayroll['attendance_allowance']
                 : (float)($emp['attendance_allowance'] ?? 0.0);
+
+            // THƯỞNG HIỆU QUẢ CÔNG VIỆC:
+            $effBonus = (isset($prevPayroll['efficiency_bonus']) && $prevPayroll['efficiency_bonus'] !== null && (float)$prevPayroll['efficiency_bonus'] > 0)
+                ? (float)$prevPayroll['efficiency_bonus']
+                : (float)($emp['efficiency_bonus'] ?? 0.0);
 
             if ($emp['salary_type'] === 'FIXED') {
                 // TỔNG HỢP LƯƠNG CỐ ĐỊNH
@@ -152,16 +166,17 @@ class Payroll {
                 $otRate = (float)($emp['overtime_rate'] ?: ($config['default_ot_rate'] ?? 120000));
                 $otPay = round($otCount * $otRate);
 
-                // Phụ cấp cơm: 25k * số ngày công X (nếu có hưởng cơm, ngược lại 0đ)
-                $hasLunch = !isset($emp['has_lunch_allowance']) || $emp['has_lunch_allowance'] == 1;
+                // Phụ cấp cơm: 25k * số ngày công X (nếu có hưởng cơm, ngược lại 0đ). Lưu ý: Chi nhánh Tân Nhựt (branch_id = 2) không có phụ cấp cơm
+                $isTanNhut = ((int)($emp['branch_id'] ?? 0) === 2);
+                $hasLunch = !$isTanNhut && (!isset($emp['has_lunch_allowance']) || (int)$emp['has_lunch_allowance'] === 1);
                 $lunchPay = $hasLunch ? round($totalDaysX * $lunchRate) : 0;
 
                 // Các khoản đãi ngộ cố định theo hồ sơ (Chuyên cần $attAllowance lấy từ đánh giá tháng)
                 $travelAllowance = (float)($emp['travel_allowance'] ?? 0);
                 $boardPay = (float)($emp['boarding_allowance'] ?? 0);
 
-                // Tổng thu = Lương công + Tăng ca + Bán trú + Chuyên cần + Cơm + Thưởng đi lại + Thưởng khác
-                $totalIncome = $salaryByDays + $otPay + $boardPay + $attAllowance + $lunchPay + $travelAllowance + $bonus;
+                // Tổng thu = Lương công + Tăng ca + Bán trú + Chuyên cần + Cơm + Thưởng đi lại + Thưởng hiệu quả + Thưởng khác
+                $totalIncome = $salaryByDays + $otPay + $boardPay + $attAllowance + $effBonus + $lunchPay + $travelAllowance + $bonus;
                 $netSalary = max(0, $totalIncome - $deductions);
 
                 // Lưu vào CSDL monthly_payroll
@@ -178,12 +193,15 @@ class Payroll {
                     'total_late_minutes' => $totalLateMinutes,
                     'standard_work_days' => $empStdDays,
                     'base_salary' => $baseSalary,
+                    'probation_salary' => (float)($emp['probation_salary'] ?? 0),
+                    'official_salary' => (float)($emp['official_salary'] ?? $baseSalary),
                     'salary_by_days' => $salaryByDays,
                     'daily_salary_rate' => $dailySalaryRate,
                     'salary_by_slots' => 0,
                     'ot_pay' => $otPay,
                     'boarding_pay' => $boardPay,
                     'attendance_allowance' => $attAllowance,
+                    'efficiency_bonus' => $effBonus,
                     'lunch_allowance' => $lunchPay,
                     'travel_allowance' => $travelAllowance,
                     'bonus' => $bonus,
@@ -204,6 +222,8 @@ class Payroll {
                     'daily_salary_rate' => $dailySalaryRate,
                     'salary_by_days' => $salaryByDays,
                     'ot_pay' => $otPay,
+                    'attendance_allowance' => $attAllowance,
+                    'efficiency_bonus' => $effBonus,
                     'lunch_allowance' => $lunchPay,
                     'travel_allowance' => $travelAllowance,
                     'bonus' => $bonus,
@@ -237,7 +257,7 @@ class Payroll {
                 $boardPay = round($boardingDays * $boardRate);
                 $travelAllowance = (float)($emp['travel_allowance'] ?? 0);
 
-                $totalIncome = $salaryBySlots + $boardPay + $attAllowance + $travelAllowance + $bonus;
+                $totalIncome = $salaryBySlots + $boardPay + $attAllowance + $effBonus + $travelAllowance + $bonus;
                 $netSalary = max(0, $totalIncome - $deductions);
 
                 $this->savePayrollRecord([
@@ -253,12 +273,15 @@ class Payroll {
                     'total_late_minutes' => 0,
                     'standard_work_days' => 26.0,
                     'base_salary' => 0,
+                    'probation_salary' => 0,
+                    'official_salary' => 0,
                     'salary_by_days' => 0,
                     'daily_salary_rate' => 0,
                     'salary_by_slots' => $salaryBySlots,
                     'ot_pay' => 0,
                     'boarding_pay' => $boardPay,
                     'attendance_allowance' => $attAllowance,
+                    'efficiency_bonus' => $effBonus,
                     'lunch_allowance' => 0,
                     'travel_allowance' => $travelAllowance,
                     'bonus' => $bonus,
@@ -275,6 +298,7 @@ class Payroll {
                     'salary_by_slots' => $salaryBySlots,
                     'boarding_pay' => $boardPay,
                     'attendance_allowance' => $attAllowance,
+                    'efficiency_bonus' => $effBonus,
                     'lunch_allowance' => 0,
                     'travel_allowance' => $travelAllowance,
                     'bonus' => $bonus,
@@ -293,13 +317,15 @@ class Payroll {
         $sql = "INSERT INTO monthly_payroll (
             employee_id, month, year, total_days_x, total_ot_hours, ot_count,
             total_slots, total_boarding_days, late_count, total_late_minutes,
-            standard_work_days, base_salary, salary_by_days, daily_salary_rate, salary_by_slots, ot_pay, boarding_pay,
-            attendance_allowance, lunch_allowance, travel_allowance, bonus, total_income, deductions, net_salary, note, director_review
+            standard_work_days, base_salary, probation_salary, official_salary, probation_hourly_rate, official_hourly_rate,
+            salary_by_days, daily_salary_rate, salary_by_slots, ot_pay, boarding_pay,
+            attendance_allowance, efficiency_bonus, lunch_allowance, travel_allowance, bonus, total_income, deductions, net_salary, note, director_review
         ) VALUES (
             :employee_id, :month, :year, :total_days_x, :total_ot_hours, :ot_count,
             :total_slots, :total_boarding_days, :late_count, :total_late_minutes,
-            :standard_work_days, :base_salary, :salary_by_days, :daily_salary_rate, :salary_by_slots, :ot_pay, :boarding_pay,
-            :attendance_allowance, :lunch_allowance, :travel_allowance, :bonus, :total_income, :deductions, :net_salary, :note, :director_review
+            :standard_work_days, :base_salary, :probation_salary, :official_salary, :probation_hourly_rate, :official_hourly_rate,
+            :salary_by_days, :daily_salary_rate, :salary_by_slots, :ot_pay, :boarding_pay,
+            :attendance_allowance, :efficiency_bonus, :lunch_allowance, :travel_allowance, :bonus, :total_income, :deductions, :net_salary, :note, :director_review
         ) ON DUPLICATE KEY UPDATE
             total_days_x = VALUES(total_days_x),
             total_ot_hours = VALUES(total_ot_hours),
@@ -310,12 +336,17 @@ class Payroll {
             total_late_minutes = VALUES(total_late_minutes),
             standard_work_days = VALUES(standard_work_days),
             base_salary = VALUES(base_salary),
+            probation_salary = VALUES(probation_salary),
+            official_salary = VALUES(official_salary),
+            probation_hourly_rate = VALUES(probation_hourly_rate),
+            official_hourly_rate = VALUES(official_hourly_rate),
             salary_by_days = VALUES(salary_by_days),
             daily_salary_rate = VALUES(daily_salary_rate),
             salary_by_slots = VALUES(salary_by_slots),
             ot_pay = VALUES(ot_pay),
             boarding_pay = VALUES(boarding_pay),
             attendance_allowance = VALUES(attendance_allowance),
+            efficiency_bonus = VALUES(efficiency_bonus),
             lunch_allowance = VALUES(lunch_allowance),
             travel_allowance = VALUES(travel_allowance),
             bonus = VALUES(bonus),
@@ -339,12 +370,17 @@ class Payroll {
             ':total_late_minutes' => $d['total_late_minutes'],
             ':standard_work_days' => $d['standard_work_days'] ?? 26.0,
             ':base_salary' => $d['base_salary'],
+            ':probation_salary' => $d['probation_salary'] ?? 0,
+            ':official_salary' => $d['official_salary'] ?? $d['base_salary'],
+            ':probation_hourly_rate' => $d['probation_hourly_rate'] ?? 0,
+            ':official_hourly_rate' => $d['official_hourly_rate'] ?? 0,
             ':salary_by_days' => $d['salary_by_days'],
             ':daily_salary_rate' => $d['daily_salary_rate'] ?? 0,
             ':salary_by_slots' => $d['salary_by_slots'],
             ':ot_pay' => $d['ot_pay'],
             ':boarding_pay' => $d['boarding_pay'],
             ':attendance_allowance' => $d['attendance_allowance'],
+            ':efficiency_bonus' => $d['efficiency_bonus'] ?? 0,
             ':lunch_allowance' => $d['lunch_allowance'],
             ':travel_allowance' => $d['travel_allowance'] ?? 0,
             ':bonus' => $d['bonus'],
@@ -363,7 +399,15 @@ class Payroll {
         $sql = "SELECT p.*, e.employee_code, e.full_name, e.position, e.salary_type,
                        e.base_salary AS emp_base_salary,
                        e.base_salary AS base_salary,
-                       e.hourly_rate AS emp_hourly_rate,
+                       COALESCE(p.probation_salary, e.probation_salary, 0) AS probation_salary,
+                       COALESCE(p.official_salary, e.official_salary, e.base_salary, 0) AS official_salary,
+                       COALESCE(p.probation_hourly_rate, e.probation_hourly_rate, 0) AS probation_hourly_rate,
+                       COALESCE(p.official_hourly_rate, e.official_hourly_rate, e.hourly_rate, 0) AS official_hourly_rate,
+                       e.notes AS emp_notes,
+                       COALESCE(p.efficiency_bonus, e.efficiency_bonus, 0) AS efficiency_bonus,
+                       e.hourly_rate AS hourly_rate,
+                       e.hourly_rate AS hourly_rate,
+                   e.hourly_rate AS emp_hourly_rate,
                        e.attendance_allowance AS emp_att_allowance,
                        e.travel_allowance AS emp_travel_allowance,
                        e.has_lunch_allowance,
@@ -432,19 +476,21 @@ class Payroll {
             // Chuyên cần nhận từ form sửa/đánh giá cuối tháng; nếu không truyền -> giữ 0.0
             $attAllowance = isset($d['attendance_allowance']) ? (float)$d['attendance_allowance'] : 0.0;
             $travelAllowance = isset($d['travel_allowance']) ? (float)$d['travel_allowance'] : (float)($emp['travel_allowance'] ?? 0);
+            $effBonus = isset($d['efficiency_bonus']) ? (float)$d['efficiency_bonus'] : (float)($emp['efficiency_bonus'] ?? 0);
 
             $salaryByDays = isset($d['salary_by_days']) 
                 ? (float)$d['salary_by_days'] 
                 : (($totalDaysX == $empStdDays) ? $baseSalary : round($dailySalaryRate * $totalDaysX));
-            $hasLunch = !isset($emp['has_lunch_allowance']) || $emp['has_lunch_allowance'] == 1;
-            $lunchPay = isset($d['lunch_allowance']) ? (float)$d['lunch_allowance'] : ($hasLunch ? round($totalDaysX * $lunchRate) : 0);
+            $isTanNhut = ((int)($emp['branch_id'] ?? 0) === 2);
+            $hasLunch = !$isTanNhut && (!isset($emp['has_lunch_allowance']) || (int)$emp['has_lunch_allowance'] === 1);
+            $lunchPay = $isTanNhut ? 0.0 : (isset($d['lunch_allowance']) ? (float)$d['lunch_allowance'] : ($hasLunch ? round($totalDaysX * $lunchRate) : 0));
 
             $bonus = isset($d['bonus']) ? (float)$d['bonus'] : 0.0;
             $deductions = isset($d['deductions']) ? (float)$d['deductions'] : 0.0;
             $note = $d['note'] ?? '';
             $directorReview = $d['director_review'] ?? '';
 
-            $totalIncome = $salaryByDays + $otPay + $boardPay + $attAllowance + $lunchPay + $travelAllowance + $bonus;
+            $totalIncome = $salaryByDays + $otPay + $boardPay + $attAllowance + $effBonus + $lunchPay + $travelAllowance + $bonus;
             $netSalary = isset($d['net_salary']) ? (float)$d['net_salary'] : max(0, $totalIncome - $deductions);
 
             $this->savePayrollRecord([
@@ -460,12 +506,17 @@ class Payroll {
                 'total_late_minutes' => isset($d['total_late_minutes']) ? (int)$d['total_late_minutes'] : 0,
                 'standard_work_days' => $empStdDays,
                 'base_salary' => $baseSalary,
+                'probation_salary' => isset($d['probation_salary']) ? (float)$d['probation_salary'] : (float)($emp['probation_salary'] ?? 0),
+                'official_salary' => isset($d['official_salary']) ? (float)$d['official_salary'] : (float)($emp['official_salary'] ?? $baseSalary),
+                'probation_hourly_rate' => isset($d['probation_hourly_rate']) ? (float)$d['probation_hourly_rate'] : (float)($emp['probation_hourly_rate'] ?? 0),
+                'official_hourly_rate' => isset($d['official_hourly_rate']) ? (float)$d['official_hourly_rate'] : (float)($emp['official_hourly_rate'] ?? 0),
                 'salary_by_days' => $salaryByDays,
                 'daily_salary_rate' => $dailySalaryRate,
                 'salary_by_slots' => 0,
                 'ot_pay' => $otPay,
                 'boarding_pay' => $boardPay,
                 'attendance_allowance' => $attAllowance,
+                'efficiency_bonus' => $effBonus,
                 'lunch_allowance' => $lunchPay,
                 'travel_allowance' => $travelAllowance,
                 'bonus' => $bonus,
@@ -484,13 +535,14 @@ class Payroll {
             $boardingDays = isset($d['total_boarding_days']) ? (int)$d['total_boarding_days'] : 0;
             $boardingPay = isset($d['boarding_pay']) ? (float)$d['boarding_pay'] : 0.0;
             $attAllowance = isset($d['attendance_allowance']) ? (float)$d['attendance_allowance'] : 0.0;
+            $effBonus = isset($d['efficiency_bonus']) ? (float)$d['efficiency_bonus'] : (float)($emp['efficiency_bonus'] ?? 0);
             $travelAllowance = isset($d['travel_allowance']) ? (float)$d['travel_allowance'] : 0.0;
             $bonus = isset($d['bonus']) ? (float)$d['bonus'] : 0.0;
             $deductions = isset($d['deductions']) ? (float)$d['deductions'] : 0.0;
             $note = $d['note'] ?? '';
             $directorReview = $d['director_review'] ?? '';
 
-            $totalIncome = $salaryBySlots + $boardingPay + $attAllowance + $travelAllowance + $bonus;
+            $totalIncome = $salaryBySlots + $boardingPay + $attAllowance + $effBonus + $travelAllowance + $bonus;
             $netSalary = isset($d['net_salary']) ? (float)$d['net_salary'] : max(0, $totalIncome - $deductions);
 
             $this->savePayrollRecord([
@@ -506,12 +558,17 @@ class Payroll {
                 'total_late_minutes' => 0,
                 'standard_work_days' => 26.0,
                 'base_salary' => 0,
+                'probation_salary' => 0,
+                'official_salary' => 0,
+                'probation_hourly_rate' => isset($d['probation_hourly_rate']) ? (float)$d['probation_hourly_rate'] : (float)($emp['probation_hourly_rate'] ?? 0),
+                'official_hourly_rate' => isset($d['official_hourly_rate']) ? (float)$d['official_hourly_rate'] : (float)($emp['official_hourly_rate'] ?? $hourlyRate),
                 'salary_by_days' => 0,
                 'daily_salary_rate' => 0,
                 'salary_by_slots' => $salaryBySlots,
                 'ot_pay' => 0,
                 'boarding_pay' => $boardingPay,
                 'attendance_allowance' => $attAllowance,
+                'efficiency_bonus' => $effBonus,
                 'lunch_allowance' => 0,
                 'travel_allowance' => $travelAllowance,
                 'bonus' => $bonus,
@@ -541,6 +598,12 @@ class Payroll {
                    e.employee_code, e.full_name, e.position, e.salary_type, e.phone, e.time_frame,
                    e.base_salary AS emp_base_salary,
                    e.base_salary AS base_salary,
+                   e.probation_salary AS emp_probation_salary,
+                   e.official_salary AS emp_official_salary,
+                   e.probation_hourly_rate AS emp_probation_hourly_rate,
+                   e.official_hourly_rate AS emp_official_hourly_rate,
+                   e.notes AS emp_notes,
+                   e.hourly_rate AS hourly_rate,
                    e.hourly_rate AS emp_hourly_rate,
                    e.standard_work_days AS emp_std_days,
                    e.standard_work_days AS standard_work_days,

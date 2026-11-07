@@ -602,7 +602,7 @@
               <tr>
                 <td class="excel-col-label">Lương cơ bản</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-base-salary" value="0" oninput="onSlipNumberInput(this); calcSlipLive();">
+                  <input type="text" class="slip-cell-input" id="inp-base-salary" value="0" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();">
                 </td>
               </tr>
               <!-- 4b. CHI TIẾT THỬ VIỆC / CHÍNH THỨC -->
@@ -628,35 +628,35 @@
               <tr>
                 <td class="excel-col-label">Số ngày</td>
                 <td class="excel-col-val">
-                  <input type="number" step="0.5" class="slip-cell-input" id="inp-days-x" value="26" oninput="calcSlipLive();">
+                  <input type="number" step="0.5" class="slip-cell-input" id="inp-days-x" value="26" onfocus="this.select()" oninput="calcSlipLive();">
                 </td>
               </tr>
               <!-- 7. SỐ CA -->
               <tr>
                 <td class="excel-col-label">Số ca</td>
                 <td class="excel-col-val">
-                  <input type="number" step="any" class="slip-cell-input" id="inp-slots" value="0" oninput="onSlipSlotsInput();">
+                  <input type="number" step="any" class="slip-cell-input" id="inp-slots" value="0" onfocus="this.select()" oninput="onSlipSlotsInput();">
                 </td>
               </tr>
               <!-- 7b. ĐƠN GIÁ 1 CA -->
               <tr id="row-slot-rate">
                 <td class="excel-col-label">Đơn giá 1 ca</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-slot-rate" value="0 đ" oninput="onSlipSlotRateInput();" style="color: #1D4ED8; font-weight: 600;">
+                  <input type="text" class="slip-cell-input" id="inp-slot-rate" value="0 đ" onfocus="onSlipSlotRateFocus(this)" onblur="onSlipSlotRateBlur(this)" oninput="onSlipSlotRateInput();" style="color: #1D4ED8; font-weight: 600;">
                 </td>
               </tr>
               <!-- 8. SỐ TIỀN (TIỀN CA / TĂNG CA) -->
               <tr>
                 <td class="excel-col-label">Số tiền</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-slot-money" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                  <input type="text" class="slip-cell-input" id="inp-slot-money" value="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();">
                 </td>
               </tr>
               <!-- 8b. TIỀN BÁN TRÚ -->
               <tr id="row-boarding" style="display: none;">
                 <td class="excel-col-label">Bán trú</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-boarding" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                  <input type="text" class="slip-cell-input" id="inp-boarding" value="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();">
                 </td>
               </tr>
               <!-- 9. CHUYÊN CẦN (ĐIỀN TỔNG THEO THÁNG) -->
@@ -666,35 +666,48 @@
                   <!-- Các nút gợi ý chọn nhanh chuyên cần -->
                   <div class="no-print" style="margin-top: 4px; display: flex; gap: 3px; flex-wrap: wrap;">
                     <span class="quick-att-pill" onclick="quickFillAtt(1000000)">1tr</span>
+                    <span class="quick-att-pill" onclick="quickFillAtt(800000)">800k</span>
                     <span class="quick-att-pill" onclick="quickFillAtt(700000)">700k</span>
                     <span class="quick-att-pill" onclick="quickFillAtt(500000)">500k</span>
                     <span class="quick-att-pill" onclick="quickFillAtt(300000)">300k</span>
+                    <span class="quick-att-pill" onclick="quickFillAtt(200000)">200k</span>
+                    <span class="quick-att-pill" onclick="quickFillAtt(100000)">100k</span>
                     <span class="quick-att-pill" onclick="quickFillAtt(0)" style="color:#BE123C;">0đ</span>
                   </div>
                 </td>
                 <td class="excel-col-val" style="background: #FEF3C7;">
-                  <input type="text" class="slip-cell-input highlight-cc" id="inp-attendance" value="0 đ" placeholder="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" title="Tiền chuyên cần là tùy tháng Giám đốc sẽ cho (không để cố định)">
+                  <input type="text" class="slip-cell-input highlight-cc" id="inp-attendance" value="0 đ" placeholder="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();" title="Tiền chuyên cần là tùy tháng Giám đốc sẽ cho (không để cố định)">
                 </td>
               </tr>
               <!-- 9b. HIỆU QUẢ CÔNG VIỆC -->
               <tr>
-                <td class="excel-col-label">Hiệu quả công việc</td>
+                <td class="excel-col-label">
+                  <div>Hiệu quả công việc</div>
+                  <!-- Các nút gợi ý chọn nhanh hiệu quả -->
+                  <div class="no-print" style="margin-top: 4px; display: flex; gap: 3px; flex-wrap: wrap;">
+                    <span class="quick-att-pill" onclick="quickFillEff(500000)">500k</span>
+                    <span class="quick-att-pill" onclick="quickFillEff(300000)">300k</span>
+                    <span class="quick-att-pill" onclick="quickFillEff(200000)">200k</span>
+                    <span class="quick-att-pill" onclick="quickFillEff(100000)">100k</span>
+                    <span class="quick-att-pill" onclick="quickFillEff(0)" style="color:#BE123C;">0đ</span>
+                  </div>
+                </td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-efficiency" value="0 đ" placeholder="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #047857; font-weight: 600;">
+                  <input type="text" class="slip-cell-input" id="inp-efficiency" value="0 đ" placeholder="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #047857; font-weight: 600;">
                 </td>
               </tr>
               <!-- 10. TIỀN CƠM -->
               <tr>
                 <td class="excel-col-label">Cơm</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-lunch" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                  <input type="text" class="slip-cell-input" id="inp-lunch" value="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();">
                 </td>
               </tr>
               <!-- 11. THƯỞNG ĐI LẠI -->
               <tr>
                 <td class="excel-col-label">Thưởng đi lại</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-travel" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();">
+                  <input type="text" class="slip-cell-input" id="inp-travel" value="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();">
                 </td>
               </tr>
 
@@ -702,7 +715,7 @@
               <tr id="row-bonus" style="display: none;">
                 <td class="excel-col-label" id="lbl-bonus">Thưởng khác / Đi họp</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-bonus" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #047857;">
+                  <input type="text" class="slip-cell-input" id="inp-bonus" value="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #047857;">
                 </td>
               </tr>
 
@@ -718,7 +731,7 @@
               <tr>
                 <td class="excel-col-label">Khấu trừ</td>
                 <td class="excel-col-val">
-                  <input type="text" class="slip-cell-input" id="inp-deductions" value="0 đ" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #BE123C;">
+                  <input type="text" class="slip-cell-input" id="inp-deductions" value="0 đ" onfocus="onSlipNumberFocus(this)" onblur="onSlipNumberBlur(this)" oninput="onSlipNumberInput(this); calcSlipLive();" style="color: #BE123C;">
                 </td>
               </tr>
 
@@ -1007,12 +1020,16 @@
         }
       }
 
-      // Chuyên cần (Dữ liệu phát sinh)
-      const att = parseFloat(d.attendance_allowance || 0);
+      // Chuyên cần (Dữ liệu phát sinh): ưu tiên giá trị đã lưu, nếu chưa có thì lấy từ hồ sơ giáo viên
+      const att = (d.attendance_allowance !== undefined && d.attendance_allowance !== null)
+        ? parseFloat(d.attendance_allowance)
+        : parseFloat(emp ? emp.attendance_allowance : 0);
       document.getElementById('inp-attendance').value = formatMoney(att) + ' đ';
 
-      // Hiệu quả công việc
-      const eff = parseFloat(d.efficiency_bonus !== undefined ? d.efficiency_bonus : (emp ? emp.efficiency_bonus : 0) || 0);
+      // Hiệu quả công việc: ưu tiên giá trị đã lưu, nếu chưa có thì lấy từ hồ sơ giáo viên
+      const eff = (d.efficiency_bonus !== undefined && d.efficiency_bonus !== null)
+        ? parseFloat(d.efficiency_bonus)
+        : parseFloat(emp ? emp.efficiency_bonus : 0);
       if (document.getElementById('inp-efficiency')) {
         document.getElementById('inp-efficiency').value = formatMoney(eff) + ' đ';
       }
@@ -1195,8 +1212,15 @@
       if (rowBoarding) rowBoarding.style.display = 'none';
       if (document.getElementById('inp-boarding')) document.getElementById('inp-boarding').value = '0 đ';
 
-      // Chuyên cần ban đầu luôn = 0 đ (chờ GĐ điền)
-      document.getElementById('inp-attendance').value = '0 đ';
+      // Chuyên cần ban đầu: lấy theo hồ sơ giáo viên nếu có, hoặc để sẵn 0 đ
+      const att = parseFloat(emp.attendance_allowance || 0);
+      document.getElementById('inp-attendance').value = formatMoney(att) + ' đ';
+
+      // Hiệu quả công việc ban đầu từ hồ sơ giáo viên (như Phố Mới 200k, 100k...)
+      const eff = parseFloat(emp.efficiency_bonus || 0);
+      if (document.getElementById('inp-efficiency')) {
+        document.getElementById('inp-efficiency').value = formatMoney(eff) + ' đ';
+      }
 
       // Cơm
       const lunch = hasLunch ? Math.round(stdDays * 25000) : 0;
@@ -1271,6 +1295,15 @@
     function quickFillAtt(amount) {
       document.getElementById('inp-attendance').value = formatMoney(amount) + ' đ';
       calcSlipLive();
+    }
+
+    // Chọn nhanh mức thưởng hiệu quả công việc
+    function quickFillEff(amount) {
+      const inp = document.getElementById('inp-efficiency');
+      if (inp) {
+        inp.value = formatMoney(amount) + ' đ';
+        calcSlipLive();
+      }
     }
 
     // 4. Lưu phiếu lương vào Database
@@ -1361,6 +1394,8 @@
         utils.showToast(`Đã lưu phiếu lương của ${emp ? emp.full_name : ''}!`, 'success');
         statusEl.textContent = '✓ Đã lưu thành công!';
         statusEl.style.color = '#059669';
+        if (!currentSlipData) currentSlipData = {};
+        Object.assign(currentSlipData, payload);
         setTimeout(() => { statusEl.textContent = ''; }, 3000);
       } else {
         utils.showToast(res.message || 'Lỗi khi lưu phiếu lương', 'error');
@@ -1655,26 +1690,54 @@
       return clean ? parseInt(clean, 10) : 0;
     }
 
-    function onSlipNumberInput(inputEl) {
+    function onSlipNumberFocus(inputEl) {
+      if (inputEl.value === 'Theo ca dạy') return;
       const val = parseMoney(inputEl.value);
-      inputEl.value = formatMoney(val) + ' đ';
+      inputEl.value = val > 0 ? val : '';
+      inputEl.select();
     }
 
-    function onSlipSlotsInput() {
+    function onSlipNumberBlur(inputEl) {
+      if (inputEl.value === 'Theo ca dạy') return;
+      const val = parseMoney(inputEl.value);
+      inputEl.value = formatMoney(val) + ' đ';
+      calcSlipLive();
+    }
+
+    function onSlipNumberInput(inputEl) {
+      // Cho phép gõ số và xóa số (Backspace) tự nhiên, tính toán ngay theo thời gian thực
+      calcSlipLive();
+    }
+
+    function onSlipSlotRateFocus(inputEl) {
+      const val = parseMoney(inputEl.value);
+      inputEl.value = val > 0 ? val : '';
+      inputEl.select();
+    }
+
+    function onSlipSlotRateBlur(inputEl) {
+      const rate = parseMoney(inputEl.value);
+      inputEl.value = formatMoney(rate) + ' đ';
       const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
-      const rate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
-      if (rate > 0) {
+      if (rate > 0 && slots > 0) {
         document.getElementById('inp-slot-money').value = formatMoney(Math.round(slots * rate)) + ' đ';
       }
       calcSlipLive();
     }
 
     function onSlipSlotRateInput() {
-      const inputEl = document.getElementById('inp-slot-rate');
-      const rate = parseMoney(inputEl.value);
-      inputEl.value = formatMoney(rate) + ' đ';
+      const rate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
       const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
       if (rate > 0 && slots > 0) {
+        document.getElementById('inp-slot-money').value = formatMoney(Math.round(slots * rate)) + ' đ';
+      }
+      calcSlipLive();
+    }
+
+    function onSlipSlotsInput() {
+      const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
+      const rate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
+      if (rate > 0) {
         document.getElementById('inp-slot-money').value = formatMoney(Math.round(slots * rate)) + ' đ';
       }
       calcSlipLive();

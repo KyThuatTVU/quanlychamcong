@@ -242,9 +242,10 @@ class Employee {
             $startDate = sprintf('%04d-%02d-01', $year, $month);
             $daysInM = (int)date('t', strtotime($startDate));
             $endDate = sprintf('%04d-%02d-%02d', $year, $month, $daysInM);
+            $endDateTime = sprintf('%04d-%02d-%02d 23:59:59', $year, $month, $daysInM);
 
             $sql .= " AND (
-                e.status = 'ACTIVE' 
+                (e.status = 'ACTIVE' AND (e.created_at IS NULL OR e.created_at <= :p_end_time))
                 OR EXISTS (
                     SELECT 1 FROM monthly_payroll p 
                     WHERE p.employee_id = e.id AND p.month = :p_month AND p.year = :p_year
@@ -260,6 +261,7 @@ class Employee {
             $params[':p_year'] = $year;
             $params[':p_start'] = $startDate;
             $params[':p_end'] = $endDate;
+            $params[':p_end_time'] = $endDateTime;
         } elseif (!empty($status)) {
             $sql .= " AND e.status = :status";
             $params[':status'] = $status;

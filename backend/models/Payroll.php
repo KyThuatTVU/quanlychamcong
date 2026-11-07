@@ -101,55 +101,21 @@ class Payroll {
 
             // QUY TẮC CHUYÊN CẦN:
             // Ưu tiên giá trị đã lưu trong bảng lương tháng; nếu chưa có thì lấy mức phụ cấp chuyên cần trong hồ sơ giáo viên
-            $attAllowance = (isset($prevPayroll['attendance_allowance']) && $prevPayroll['attendance_allowance'] !== null && (float)$prevPayroll['attendance_allowance'] > 0)
+            $attAllowance = (isset($prevPayroll['attendance_allowance']) && $prevPayroll['attendance_allowance'] !== null)
                 ? (float)$prevPayroll['attendance_allowance']
                 : (float)($emp['attendance_allowance'] ?? 0.0);
 
             // THƯỞNG HIỆU QUẢ CÔNG VIỆC:
-            $effBonus = (isset($prevPayroll['efficiency_bonus']) && $prevPayroll['efficiency_bonus'] !== null && (float)$prevPayroll['efficiency_bonus'] > 0)
+            $effBonus = (isset($prevPayroll['efficiency_bonus']) && $prevPayroll['efficiency_bonus'] !== null)
                 ? (float)$prevPayroll['efficiency_bonus']
                 : (float)($emp['efficiency_bonus'] ?? 0.0);
 
             if ($emp['salary_type'] === 'FIXED') {
                 // TỔNG HỢP LƯƠNG CỐ ĐỊNH
-                $totalDaysX = 0.0;
-                $totalOtHours = 0.0;
-                $otCount = 0;
-                $lateCount = 0;
-                $totalLateMinutes = 0;
-
-                foreach ($attendanceList as $a) {
-                    $rawWork = trim($a['work_symbol'] ?? '');
-                    $rawSal = trim($a['salary_symbol'] ?? '');
-                    $sym = ($rawWork !== '' && $rawWork !== '-') ? $rawWork : ($rawSal ?: '-');
-                    if (in_array($sym, ['X', 'X + TC', 'X+TC', 'X + CT', 'X+CT'])) {
-                        $totalDaysX += 1.0;
-                    } elseif (in_array($sym, ['0.5', '0.5X', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', '0.5 + CT', '0.5+CT'])) {
-                        $totalDaysX += 0.5;
-                    }
-
-                    // TĂNG CA / CA TỐI:
-                    // Hỗ trợ cả trường hợp giáo viên nghỉ bán trú ban ngày nhưng tối vẫn đến dạy 1 ca (ký hiệu: CT, TC, P + CT, P + TC)
-                    $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
-                    $hasOtSymbol = in_array($sym, ['X + TC', 'X+TC', 'TC', 'P + TC', 'P+TC', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', 'X + CT', 'X+CT', 'CT', 'P + CT', 'P+CT', '0.5 + CT', '0.5+CT']);
-                    $isRowOt = $hasOtSymbol || (!empty($a['is_overtime']) && $otH > 0) || (!empty($a['is_overtime']) && !in_array($sym, ['P', 'K', 'Thiếu', '-']));
-
-                    if ($isRowOt) {
-                        if ($otH <= 0) {
-                            $otH = 1.50; // Mặc định 1 ca = 1.50h (90 phút)
-                        }
-                        // Quy đổi số ca TC: 1.5h = 1 ca, 3h = 2 ca
-                        $slotsInDay = round($otH / 1.5, 2);
-                        if ($slotsInDay < 0.5) $slotsInDay = 1.0;
-                        $otCount += $slotsInDay;
-                        $totalOtHours += $otH;
-                    }
-                    $lateM = (int)($a['late_minutes'] ?? 0);
-                    if ($lateM > 0) {
-                        $lateCount++;
-                        $totalLateMinutes += $lateM;
-                    }
-                }
+                $isOnlineOrExempt = ($emp['employee_code'] === 'NV001')
+                                 || (stripos($emp['position'] ?? '', 'online') !== false)
+                                 || (stripos($emp['notes'] ?? '', 'online') !== false)
+                                 || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
 
                 $baseSalary = (float)$emp['base_salary'];
                 // Ngày công chuẩn riêng theo hợp đồng (VD: cô Linh 21 ngày, các cô khác 26 ngày)
@@ -159,8 +125,56 @@ class Payroll {
                 // Lương 1 ngày: (Lương cơ bản / Ngày chuẩn riêng)
                 $dailySalaryRate = round($baseSalary / $empStdDays, 2);
 
-                // Lương theo ngày công thực tế (X): nếu làm đủ ngày chuẩn thì = đúng Lương cơ bản
-                $salaryByDays = ($totalDaysX == $empStdDays) ? $baseSalary : round(($baseSalary / $empStdDays) * $totalDaysX);
+                $totalDaysX = 0.0;
+                $totalOtHours = 0.0;
+                $otCount = 0;
+                $lateCount = 0;
+                $totalLateMinutes = 0;
+
+                if ($isOnlineOrExempt) {
+                    // Nhân sự kỹ thuật / quản lý làm online: hưởng đủ ngày chuẩn trọn tháng, không cần chấm công
+                    $totalDaysX = $empStdDays;
+                    $salaryByDays = $baseSalary;
+                    if (empty($note)) {
+                        $note = 'Quản lý kỹ thuật làm online (hưởng đủ lương tháng, không cần chấm công).';
+                    }
+                } else {
+                    foreach ($attendanceList as $a) {
+                        $rawWork = trim($a['work_symbol'] ?? '');
+                        $rawSal = trim($a['salary_symbol'] ?? '');
+                        $sym = ($rawWork !== '' && $rawWork !== '-') ? $rawWork : ($rawSal ?: '-');
+                        if (in_array($sym, ['X', 'X + TC', 'X+TC', 'X + CT', 'X+CT'])) {
+                            $totalDaysX += 1.0;
+                        } elseif (in_array($sym, ['0.5', '0.5X', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', '0.5 + CT', '0.5+CT'])) {
+                            $totalDaysX += 0.5;
+                        }
+
+                        // TĂNG CA / CA TỐI:
+                        // Hỗ trợ cả trường hợp giáo viên nghỉ bán trú ban ngày nhưng tối vẫn đến dạy 1 ca (ký hiệu: CT, TC, P + CT, P + TC)
+                        $otH = (float)($a['ot_salary_hours'] ?: $a['ot_hours']);
+                        $hasOtSymbol = in_array($sym, ['X + TC', 'X+TC', 'TC', 'P + TC', 'P+TC', '0.5 + TC', '0.5+TC', '0.5X+TC', '0.5X + TC', 'X + CT', 'X+CT', 'CT', 'P + CT', 'P+CT', '0.5 + CT', '0.5+CT']);
+                        $isRowOt = $hasOtSymbol || (!empty($a['is_overtime']) && $otH > 0) || (!empty($a['is_overtime']) && !in_array($sym, ['P', 'K', 'Thiếu', '-']));
+
+                        if ($isRowOt) {
+                            if ($otH <= 0) {
+                                $otH = 1.50; // Mặc định 1 ca = 1.50h (90 phút)
+                            }
+                            // Quy đổi số ca TC: 1.5h = 1 ca, 3h = 2 ca
+                            $slotsInDay = round($otH / 1.5, 2);
+                            if ($slotsInDay < 0.5) $slotsInDay = 1.0;
+                            $otCount += $slotsInDay;
+                            $totalOtHours += $otH;
+                        }
+                        $lateM = (int)($a['late_minutes'] ?? 0);
+                        if ($lateM > 0) {
+                            $lateCount++;
+                            $totalLateMinutes += $lateM;
+                        }
+                    }
+
+                    // Lương theo ngày công thực tế (X): nếu làm đủ ngày chuẩn thì = đúng Lương cơ bản
+                    $salaryByDays = ($totalDaysX == $empStdDays) ? $baseSalary : round(($baseSalary / $empStdDays) * $totalDaysX);
+                }
 
                 // Tiền tăng ca: Số ca TC * Đơn giá ca (mặc định 120.000đ/ca hoặc cấu hình riêng theo cô, ví dụ cô Hiền 100k/ca = 200k/2 ca)
                 $otRate = (float)($emp['overtime_rate'] ?: ($config['default_ot_rate'] ?? 120000));

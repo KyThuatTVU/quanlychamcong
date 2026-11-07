@@ -19,6 +19,15 @@ class Attendance {
         $y = (int)date('Y', $dObj);
         $employees = $empModel->getList($branchId, $salaryType, '', $m, $y);
 
+        // Lọc bỏ nhân sự quản lý / kỹ thuật làm online không cần chấm công hàng ngày
+        $employees = array_values(array_filter($employees, function($emp) {
+            $isOnline = ($emp['employee_code'] === 'NV001')
+                     || (stripos($emp['position'] ?? '', 'online') !== false)
+                     || (stripos($emp['notes'] ?? '', 'online') !== false)
+                     || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
+            return !$isOnline;
+        }));
+
         if (empty($employees)) {
             return [];
         }
@@ -61,6 +70,15 @@ class Attendance {
     public function getMonthMatrix(int $branchId, string $salaryType, int $month, int $year): array {
         $empModel = new Employee();
         $employees = $empModel->getList($branchId, $salaryType, '', $month, $year);
+
+        // Lọc bỏ nhân sự quản lý / kỹ thuật làm online không cần chấm công hàng ngày
+        $employees = array_values(array_filter($employees, function($emp) {
+            $isOnline = ($emp['employee_code'] === 'NV001')
+                     || (stripos($emp['position'] ?? '', 'online') !== false)
+                     || (stripos($emp['notes'] ?? '', 'online') !== false)
+                     || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
+            return !$isOnline;
+        }));
 
         if (empty($employees)) {
             return [];

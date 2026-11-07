@@ -95,8 +95,8 @@ switch ($method) {
                 }
 
                 $sql = "UPDATE monthly_payroll SET " . implode(', ', $setParts) . ",
-                        total_income = (salary_by_days + salary_by_slots + ot_pay + boarding_pay + attendance_allowance + efficiency_bonus + lunch_allowance + travel_allowance + :bonus),
-                        net_salary = GREATEST(0, (salary_by_days + salary_by_slots + ot_pay + boarding_pay + attendance_allowance + efficiency_bonus + lunch_allowance + travel_allowance + :bonus) - :deductions)
+                        total_income = (COALESCE(salary_by_days,0) + COALESCE(salary_by_slots,0) + COALESCE(ot_pay,0) + COALESCE(boarding_pay,0) + COALESCE(attendance_allowance,0) + COALESCE(efficiency_bonus,0) + COALESCE(lunch_allowance,0) + COALESCE(travel_allowance,0) + :bonus),
+                        net_salary = GREATEST(0, (COALESCE(salary_by_days,0) + COALESCE(salary_by_slots,0) + COALESCE(ot_pay,0) + COALESCE(boarding_pay,0) + COALESCE(attendance_allowance,0) + COALESCE(efficiency_bonus,0) + COALESCE(lunch_allowance,0) + COALESCE(travel_allowance,0) + :bonus) - :deductions)
                         WHERE employee_id = :emp_id AND month = :m AND year = :y";
 
                 $stmt = $db->prepare($sql);

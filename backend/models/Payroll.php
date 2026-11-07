@@ -113,8 +113,11 @@ class Payroll {
             if ($emp['salary_type'] === 'FIXED') {
                 // TỔNG HỢP LƯƠNG CỐ ĐỊNH
                 $isOnlineOrExempt = ($emp['employee_code'] === 'NV001')
+                                 || ((int)$emp['id'] === 25)
+                                 || (stripos($emp['full_name'] ?? '', 'Kiều Trân') !== false)
                                  || (stripos($emp['position'] ?? '', 'online') !== false)
                                  || (stripos($emp['notes'] ?? '', 'online') !== false)
+                                 || (stripos($emp['notes'] ?? '', 'khoán') !== false)
                                  || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
 
                 $baseSalary = (float)$emp['base_salary'];
@@ -132,11 +135,13 @@ class Payroll {
                 $totalLateMinutes = 0;
 
                 if ($isOnlineOrExempt) {
-                    // Nhân sự kỹ thuật / quản lý làm online: hưởng đủ ngày chuẩn trọn tháng, không cần chấm công
+                    // Nhân sự kỹ thuật / quản lý online hoặc lương khoán trọn tháng: hưởng đủ ngày chuẩn trọn tháng, không cần chấm công
                     $totalDaysX = $empStdDays;
                     $salaryByDays = $baseSalary;
                     if (empty($note)) {
-                        $note = 'Quản lý kỹ thuật làm online (hưởng đủ lương tháng, không cần chấm công).';
+                        $note = ((int)$emp['id'] === 25 || stripos($emp['full_name'] ?? '', 'Kiều Trân') !== false)
+                            ? 'Lương khoán thỏa thuận trọn tháng (không cần chấm công).'
+                            : 'Nhân sự làm online / khoán trọn tháng (không cần chấm công).';
                     }
                 } else {
                     foreach ($attendanceList as $a) {

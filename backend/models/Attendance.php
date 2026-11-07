@@ -19,11 +19,14 @@ class Attendance {
         $y = (int)date('Y', $dObj);
         $employees = $empModel->getList($branchId, $salaryType, '', $m, $y);
 
-        // Lọc bỏ nhân sự quản lý / kỹ thuật làm online không cần chấm công hàng ngày
+        // Lọc bỏ nhân sự quản lý / kỹ thuật làm online hoặc lương khoán không cần chấm công hàng ngày
         $employees = array_values(array_filter($employees, function($emp) {
             $isOnline = ($emp['employee_code'] === 'NV001')
+                     || ((int)$emp['id'] === 25)
+                     || (stripos($emp['full_name'] ?? '', 'Kiều Trân') !== false)
                      || (stripos($emp['position'] ?? '', 'online') !== false)
                      || (stripos($emp['notes'] ?? '', 'online') !== false)
+                     || (stripos($emp['notes'] ?? '', 'khoán') !== false)
                      || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
             return !$isOnline;
         }));
@@ -71,11 +74,14 @@ class Attendance {
         $empModel = new Employee();
         $employees = $empModel->getList($branchId, $salaryType, '', $month, $year);
 
-        // Lọc bỏ nhân sự quản lý / kỹ thuật làm online không cần chấm công hàng ngày
+        // Lọc bỏ nhân sự quản lý / kỹ thuật làm online hoặc lương khoán không cần chấm công hàng ngày
         $employees = array_values(array_filter($employees, function($emp) {
             $isOnline = ($emp['employee_code'] === 'NV001')
+                     || ((int)$emp['id'] === 25)
+                     || (stripos($emp['full_name'] ?? '', 'Kiều Trân') !== false)
                      || (stripos($emp['position'] ?? '', 'online') !== false)
                      || (stripos($emp['notes'] ?? '', 'online') !== false)
+                     || (stripos($emp['notes'] ?? '', 'khoán') !== false)
                      || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
             return !$isOnline;
         }));

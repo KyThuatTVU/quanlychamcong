@@ -60,11 +60,12 @@ switch ($method) {
     case 'DELETE':
         $id = (int)($_GET['id'] ?? 0);
         $permanent = !empty($_GET['permanent']) && $_GET['permanent'] == '1';
+        $resignedDate = !empty($_GET['resigned_date']) ? trim($_GET['resigned_date']) : null;
         if ($id <= 0) {
             jsonResponse('error', null, 'Thiếu ID giáo viên cần xóa', 400);
         }
         try {
-            $empModel->delete($id, $permanent);
+            $empModel->delete($id, $permanent, $resignedDate);
             $msg = $permanent ? 'Đã xóa vĩnh viễn giáo viên khỏi cơ sở dữ liệu' : 'Đã chuyển trạng thái sang nghỉ việc';
             jsonResponse('success', null, $msg);
         } catch (Exception $e) {

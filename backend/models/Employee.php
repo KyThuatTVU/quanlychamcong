@@ -245,7 +245,11 @@ class Employee {
             $endDateTime = sprintf('%04d-%02d-%02d 23:59:59', $year, $month, $daysInM);
 
             $sql .= " AND (
-                (e.status = 'ACTIVE' AND (e.created_at IS NULL OR e.created_at <= :p_end_time))
+                (
+                    (e.status = 'ACTIVE' OR (e.status = 'RESIGNED' AND e.resigned_date IS NOT NULL AND e.resigned_date >= :p_start1))
+                    AND (e.created_at IS NULL OR e.created_at <= :p_end_time)
+                    AND (e.start_date IS NULL OR e.start_date <= :p_end1)
+                )
                 OR EXISTS (
                     SELECT 1 FROM monthly_payroll p 
                     WHERE p.employee_id = e.id AND p.month = :p_month AND p.year = :p_year
@@ -253,14 +257,16 @@ class Employee {
                 OR EXISTS (
                     SELECT 1 FROM daily_attendance a 
                     WHERE a.employee_id = e.id 
-                      AND a.work_date BETWEEN :p_start AND :p_end
+                      AND a.work_date BETWEEN :p_start2 AND :p_end2
                       AND (a.work_symbol NOT IN ('-', '', '0') OR a.total_slots > 0 OR a.time_in IS NOT NULL)
                 )
             )";
             $params[':p_month'] = $month;
             $params[':p_year'] = $year;
-            $params[':p_start'] = $startDate;
-            $params[':p_end'] = $endDate;
+            $params[':p_start1'] = $startDate;
+            $params[':p_start2'] = $startDate;
+            $params[':p_end1'] = $endDate;
+            $params[':p_end2'] = $endDate;
             $params[':p_end_time'] = $endDateTime;
         } elseif (!empty($status)) {
             $sql .= " AND e.status = :status";
@@ -295,13 +301,13 @@ class Employee {
             base_salary, probation_salary, official_salary, hourly_rate, overtime_rate,
             attendance_allowance, efficiency_bonus, boarding_allowance,
             travel_allowance, has_lunch_allowance, other_allowance, time_frame, standard_hours, standard_work_days,
-            default_time_in, default_time_out, work_schedule, status, notes
+            default_time_in, default_time_out, work_schedule, start_date, status, resigned_date, notes
         ) VALUES (
             :branch_id, :employee_code, :full_name, :position, :phone, :salary_type,
             :base_salary, :probation_salary, :official_salary, :hourly_rate, :overtime_rate,
             :attendance_allowance, :efficiency_bonus, :boarding_allowance,
             :travel_allowance, :has_lunch_allowance, :other_allowance, :time_frame, :standard_hours, :standard_work_days,
-            :default_time_in, :default_time_out, :work_schedule, :status, :notes
+            :default_time_in, :default_time_out, :work_schedule, :start_date, :status, :resigned_date, :notes
         )";
 
         $stmt = $this->db->prepare($sql);
@@ -329,7 +335,9 @@ class Employee {
             ':default_time_in' => !empty($data['default_time_in']) ? $data['default_time_in'] : null,
             ':default_time_out' => !empty($data['default_time_out']) ? $data['default_time_out'] : null,
             ':work_schedule' => $data['work_schedule'] ?? 'Thứ 2 - Thứ 7',
+            ':start_date' => !empty($data['start_date']) ? $data['start_date'] : null,
             ':status' => $data['status'] ?? 'ACTIVE',
+            ':resigned_date' => !empty($data['resigned_date']) ? $data['resigned_date'] : null,
             ':notes' => $data['notes'] ?? ''
         ]);
 
@@ -375,7 +383,9 @@ class Employee {
             default_time_in = :default_time_in,
             default_time_out = :default_time_out,
             work_schedule = :work_schedule,
+            start_date = :start_date,
             status = :status,
+            resigned_date = :resigned_date,
             notes = :notes
         WHERE id = :id";
 
@@ -404,7 +414,9 @@ class Employee {
             ':default_time_in' => !empty($data['default_time_in']) ? $data['default_time_in'] : null,
             ':default_time_out' => !empty($data['default_time_out']) ? $data['default_time_out'] : null,
             ':work_schedule' => $data['work_schedule'] ?? 'Thứ 2 - Thứ 7',
+            ':start_date' => !empty($data['start_date']) ? $data['start_date'] : null,
             ':status' => $data['status'] ?? 'ACTIVE',
+            ':resigned_date' => !empty($data['resigned_date']) ? $data['resigned_date'] : null,
             ':notes' => $data['notes'] ?? '',
             ':id' => $id
         ]);
@@ -424,7 +436,7 @@ class Employee {
         return $ok;
     }
 
-    public function delete(int $id, bool $permanent = false): bool {
+    public function delete(int $id, bool $permanent = false, ?string $resignedDate = null): bool {
         if ($permanent) {
             try {
                 $this->db->prepare("DELETE FROM users WHERE employee_id = :id")->execute([':id' => $id]);
@@ -435,7 +447,9 @@ class Employee {
         try {
             $this->db->prepare("UPDATE users SET status = 'BLOCKED' WHERE employee_id = :id")->execute([':id' => $id]);
         } catch (Throwable $e) {}
-        $stmt = $this->db->prepare("UPDATE employees SET status = 'RESIGNED' WHERE id = :id");
-        return $stmt->execute([':id' => $id]);
+        
+        $rDate = !empty($resignedDate) ? $resignedDate : date('Y-m-d');
+        $stmt = $this->db->prepare("UPDATE employees SET status = 'RESIGNED', resigned_date = :r_date WHERE id = :id");
+        return $stmt->execute([':id' => $id, ':r_date' => $rDate]);
     }
 }

@@ -12,6 +12,21 @@
   --font-body: 'Quicksand', 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-heading: 'Quicksand', 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, sans-serif;
 
+  /* CHUẨN KÍCH THƯỚC CHỮ (TYPOGRAPHY SCALE CHO SAAS / HRM) */
+  --text-xs: 11px;         /* Nhãn phụ, badge nhỏ, gợi ý thời gian, metadata */
+  --text-sm: 12px;         /* Tiêu đề bảng (th), badge trạng thái, ghi chú */
+  --text-base: 13.5px;     /* Nội dung ô bảng (td), text thông tin chi tiết */
+  --text-md: 14.5px;       /* Label input, button chính, body text chung */
+  --text-lg: 16px;         /* Tiêu đề thẻ con, sub-heading modal */
+  --text-xl: 19px;         /* Tiêu đề trang (Page title), tiêu đề modal lớn */
+  --text-2xl: 23px;        /* Số liệu KPI thống kê, tổng lương nổi bật */
+
+  /* TRỌNG LƯỢNG CHỮ */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
   /* 60% — MÀU CHỦ ĐẠO (NỀN VÀ KHÔNG GIAN SÁNG) */
   --color-background: #F8FAFC;
   --color-surface: #FFFFFF;
@@ -72,7 +87,7 @@
 
 html {
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-background);

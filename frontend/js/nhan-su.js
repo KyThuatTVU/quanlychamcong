@@ -199,12 +199,35 @@ function filterAndRender(searchTerm = '') {
       ? `<div style="margin-top: 3px;"><span class="badge" style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-size: 11px; padding: 2px 6px;" title="Tài khoản đăng nhập: ${emp.user_username} (${emp.user_role})"><i data-lucide="shield-check" style="width: 11px; height: 11px; display: inline-block; vertical-align: middle; margin-right: 3px;"></i>${emp.user_username}</span></div>`
       : `<div style="margin-top: 3px;"><span class="badge" style="background: #F1F5F9; color: #64748B; border: 1px solid #CBD5E1; font-size: 11px; padding: 2px 6px;" title="Chưa cấp tài khoản đăng nhập"><i data-lucide="shield-alert" style="width: 11px; height: 11px; display: inline-block; vertical-align: middle; margin-right: 3px;"></i>Chưa có TK</span></div>`;
 
+    let statusBadge = '';
+    if (emp.status === 'RESIGNED') {
+      const rDateText = emp.resigned_date ? utils.formatDate(emp.resigned_date) : '';
+      statusBadge = `<div style="margin-top: 3px;">
+        <span class="badge" style="background: #FEE2E2; color: #B91C1C; border: 1px solid #FECDD3; font-size: 11px; padding: 2px 6px; font-weight: 700;" title="Đã nghỉ việc từ ngày ${rDateText || 'chưa ghi nhận'}">
+          ⛔ Đã nghỉ${rDateText ? ': ' + rDateText : ''}
+        </span>
+      </div>`;
+    } else if (emp.status === 'LEAVE') {
+      statusBadge = `<div style="margin-top: 3px;">
+        <span class="badge" style="background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; font-size: 11px; padding: 2px 6px; font-weight: 600;">
+          ⏳ Tạm nghỉ phép
+        </span>
+      </div>`;
+    } else if (emp.start_date) {
+      statusBadge = `<div style="margin-top: 3px;">
+        <span style="font-size: 11px; color: #059669; font-weight: 500;" title="Ngày vào làm: ${utils.formatDate(emp.start_date)}">
+          ✓ Vào làm: ${utils.formatDate(emp.start_date)}
+        </span>
+      </div>`;
+    }
+
     return `
-      <tr>
+      <tr style="${emp.status === 'RESIGNED' ? 'background: #FFFBFB; opacity: 0.85;' : ''}">
         <td style="text-align: center; color: var(--color-text-secondary); font-size: 12.5px;">${index + 1}</td>
         <td><strong style="color: var(--color-primary);">${emp.employee_code}</strong></td>
         <td>
           <strong>${emp.full_name}</strong>
+          ${statusBadge}
           ${accountBadge}
         </td>
         <td>${emp.position || '-'}</td>
@@ -250,6 +273,14 @@ function toggleAccountFields(show) {
     utils.initIcons();
   }
 }
+
+window.toggleResignedDateField = function() {
+  const status = document.getElementById('emp-form-status')?.value;
+  const group = document.getElementById('group-resigned-date');
+  if (group) {
+    group.style.display = (status === 'RESIGNED') ? 'block' : 'none';
+  }
+};
 
 window.calcEmpDailyRateLive = function() {
   const base = parseFloat(document.getElementById('emp-form-base-salary')?.value) || 0;
@@ -306,6 +337,11 @@ function openAddModal() {
   if (document.getElementById('emp-acc-pwd-hint')) {
     document.getElementById('emp-acc-pwd-hint').innerHTML = 'Thêm mới: Mặc định là <strong>123456</strong> (có thể thay đổi).';
   }
+  if (document.getElementById('emp-form-status')) document.getElementById('emp-form-status').value = 'ACTIVE';
+  if (document.getElementById('emp-form-start-date')) document.getElementById('emp-form-start-date').value = '';
+  if (document.getElementById('emp-form-resigned-date')) document.getElementById('emp-form-resigned-date').value = '';
+  toggleResignedDateField();
+
   toggleAccountFields(true);
 
   calcEmpDailyRateLive();
@@ -351,6 +387,11 @@ window.openEditModal = function(id) {
   document.getElementById('emp-form-time-in').value = emp.default_time_in ? emp.default_time_in.substring(0, 5) : '';
   document.getElementById('emp-form-time-out').value = emp.default_time_out ? emp.default_time_out.substring(0, 5) : '';
   if (document.getElementById('emp-form-notes')) document.getElementById('emp-form-notes').value = emp.notes || '';
+
+  if (document.getElementById('emp-form-status')) document.getElementById('emp-form-status').value = emp.status || 'ACTIVE';
+  if (document.getElementById('emp-form-start-date')) document.getElementById('emp-form-start-date').value = emp.start_date || '';
+  if (document.getElementById('emp-form-resigned-date')) document.getElementById('emp-form-resigned-date').value = emp.resigned_date || '';
+  toggleResignedDateField();
 
   // Thông tin tài khoản đăng nhập
   const hasAccount = (emp.has_account == 1 || emp.user_id || emp.user_username);
@@ -412,6 +453,9 @@ async function saveEmployee() {
     standard_hours: parseFloat(document.getElementById('emp-form-std-hours').value) || 8.0,
     default_time_in: normalizeTime24(document.getElementById('emp-form-time-in').value) || null,
     default_time_out: normalizeTime24(document.getElementById('emp-form-time-out').value) || null,
+    status: document.getElementById('emp-form-status')?.value || 'ACTIVE',
+    start_date: document.getElementById('emp-form-start-date')?.value || null,
+    resigned_date: (document.getElementById('emp-form-status')?.value === 'RESIGNED') ? (document.getElementById('emp-form-resigned-date')?.value || null) : null,
     notes: document.getElementById('emp-form-notes') ? document.getElementById('emp-form-notes').value.trim() : ''
   };
 
@@ -494,9 +538,16 @@ window.deleteEmployee = async function(id) {
   );
 
   if (choice === '1') {
-    const res = await api.delete('employees.php', { id: id });
+    const defaultDate = emp?.resigned_date || new Date().toISOString().split('T')[0];
+    const rDate = prompt(
+      `Nhập ngày nghỉ việc chính thức của "${name}":\n` +
+      `Định dạng YYYY-MM-DD (Ví dụ: 2026-10-31 hoặc để mặc định hôm nay)`,
+      defaultDate
+    );
+    if (!rDate) return;
+    const res = await api.delete('employees.php', { id: id, resigned_date: rDate.trim() });
     if (res.status === 'success') {
-      utils.showToast('Đã chuyển giáo viên sang trạng thái nghỉ việc', 'success');
+      utils.showToast(`Đã chuyển giáo viên sang trạng thái nghỉ việc (${rDate})!`, 'success');
       await loadEmployees();
     } else {
       utils.showToast(res.message || 'Lỗi khi cập nhật trạng thái', 'error');

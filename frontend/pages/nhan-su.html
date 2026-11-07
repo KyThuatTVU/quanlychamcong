@@ -183,6 +183,24 @@
                 <input type="text" class="form-control" id="emp-form-phone" placeholder="VD: 0949480299">
               </div>
             </div>
+            <div class="grid-3" style="margin-top: 10px; background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: var(--radius-sm); padding: 10px 12px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700;">Trạng thái công tác <span class="required">*</span></label>
+                <select class="form-control" id="emp-form-status" style="font-weight: 600;" onchange="toggleResignedDateField()">
+                  <option value="ACTIVE" selected>🟢 Đang làm việc</option>
+                  <option value="RESIGNED">🔴 Đã nghỉ việc</option>
+                  <option value="LEAVE">🟡 Nghỉ phép tạm thời</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Ngày vào làm</label>
+                <input type="date" class="form-control" id="emp-form-start-date">
+              </div>
+              <div class="form-group" id="group-resigned-date" style="margin-bottom: 0; display: none;">
+                <label class="form-label" style="color: #BE123C; font-weight: 700;">Ngày nghỉ việc <span class="required">*</span></label>
+                <input type="date" class="form-control" id="emp-form-resigned-date" style="border-color: #F87171; background: #FFF1F2;">
+              </div>
+            </div>
           </div>
 
           <!-- SECTION 2: HÌNH THỨC & THÔNG SỐ LƯƠNG -->

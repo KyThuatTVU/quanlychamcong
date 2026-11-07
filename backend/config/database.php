@@ -17,7 +17,7 @@ if ($isByethost) {
     // 1. CẤU HÌNH TRÊN HOSTING BYETHOST
     // ==========================================
     define('DB_HOST', 'sql107.byethost13.com');
-    define('DB_NAME', 'b13_43251152_happykids_hrm');
+    define('DB_NAME', 'b13_43251152_happykids_hrm1');
     define('DB_USER', 'b13_43251152');
     
     // Mật khẩu đăng nhập vPanel / MySQL trên Byethost

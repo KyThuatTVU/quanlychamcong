@@ -16,9 +16,16 @@ switch ($method) {
         } else {
             $branchId = (int)($_GET['branch_id'] ?? 0);
             $salaryType = $_GET['salary_type'] ?? '';
-            $status = $_GET['status'] ?? 'ACTIVE';
+            $status = $_GET['status'] ?? '';
+            $month = (int)($_GET['month'] ?? 0);
+            $year = (int)($_GET['year'] ?? 0);
 
-            $list = $empModel->getList($branchId, $salaryType, $status);
+            // Mặc định nếu không truyền status và không truyền tháng năm thì lấy ACTIVE
+            if (empty($status) && ($month <= 0 || $year <= 0)) {
+                $status = 'ACTIVE';
+            }
+
+            $list = $empModel->getList($branchId, $salaryType, $status, $month, $year);
             jsonResponse('success', $list);
         }
         break;

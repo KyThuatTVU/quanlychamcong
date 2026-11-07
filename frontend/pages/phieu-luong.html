@@ -806,12 +806,12 @@
 
       document.getElementById('select-month').addEventListener('change', async (e) => {
         currentMonth = parseInt(e.target.value);
-        await loadPayslipData();
+        await loadBranchEmployees();
       });
 
       document.getElementById('select-year').addEventListener('change', async (e) => {
         currentYear = parseInt(e.target.value);
-        await loadPayslipData();
+        await loadBranchEmployees();
       });
 
       document.getElementById('select-emp').addEventListener('change', async (e) => {
@@ -855,15 +855,28 @@
       await loadBranchEmployees();
     });
 
-    // 1. Tải danh sách giáo viên trong chi nhánh
+    // 1. Tải danh sách giáo viên trong chi nhánh theo kỳ (tháng/năm)
     async function loadBranchEmployees() {
       const branchSelect = document.getElementById('sidebar-branch-select');
       const branchName = branchSelect.options[branchSelect.selectedIndex].text;
       document.getElementById('disp-branch-header').textContent = `TRUNG TÂM HAPPYKIDS ${branchName.toUpperCase().replace('CHI NHÁNH ', '')}`;
 
-      const res = await api.get('employees.php', { branch_id: currentBranchId });
+      const res = await api.get('employees.php', { 
+        branch_id: currentBranchId,
+        month: currentMonth,
+        year: currentYear
+      });
       if (res.status === 'success' && res.data) {
         branchEmployees = res.data;
+
+        // Nếu có empId từ URL/truy vấn mà chưa nằm trong danh sách (ví dụ tra cứu lại nhân viên cũ):
+        if (currentEmpId && !branchEmployees.some(e => e.id == currentEmpId)) {
+          const singleEmpRes = await api.get('employees.php', { id: currentEmpId });
+          if (singleEmpRes.status === 'success' && singleEmpRes.data) {
+            branchEmployees.push(singleEmpRes.data);
+          }
+        }
+
         const empSelect = document.getElementById('select-emp');
 
         if (branchEmployees.length === 0) {
@@ -871,11 +884,12 @@
           return;
         }
 
-        empSelect.innerHTML = branchEmployees.map(e => `
-          <option value="${e.id}">${e.employee_code} — ${e.full_name}</option>
-        `).join('');
+        empSelect.innerHTML = branchEmployees.map(e => {
+          const resignTag = e.status === 'RESIGNED' ? ' [Đã nghỉ]' : '';
+          return `<option value="${e.id}">${e.employee_code} — ${e.full_name}${resignTag}</option>`;
+        }).join('');
 
-        // Nếu có empId từ URL mà nằm trong chi nhánh thì chọn, nếu không chọn người đầu tiên
+        // Nếu có empId hợp lệ thì chọn, nếu không chọn người đầu tiên
         if (currentEmpId && branchEmployees.some(e => e.id == currentEmpId)) {
           empSelect.value = currentEmpId;
         } else {
@@ -1100,7 +1114,21 @@
         const noteText = (emp && emp.notes) ? emp.notes : '';
 
         rowProb.style.display = '';
-        if (probH > 0 && probH !== offH) {
+        if (emp && emp.id == 11 && (currentMonth >= 11 || d?.month >= 11)) {
+          boxProb.innerHTML = `
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 4px;">
+              <span style="background: #FEF3C7; color: #92400E; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #FCD34D;">
+                <i class="fas fa-sun"></i> Ca Sáng: ${formatMoney(offH)} đ/ca
+              </span>
+              <span style="background: #ECFDF5; color: #065F46; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #A7F3D0;">
+                <i class="fas fa-moon"></i> Ca Chiều & Tối: ${formatMoney(probH)} đ/ca
+              </span>
+            </div>
+            <div style="font-size: 11px; color: #475569; font-style: italic; line-height: 1.4;">
+              ${noteText || '* Ca sáng 120.000đ/ca, ca chiều và tối 100.000đ/ca.'}
+            </div>
+          `;
+        } else if (probH > 0 && probH !== offH) {
           boxProb.innerHTML = `
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 4px;">
               <span style="background: #FEF3C7; color: #92400E; font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 700; border: 1px solid #FCD34D;">

@@ -828,6 +828,7 @@ async function saveSingleDailyHourly(empId) {
     evening_in: tin || null,
     evening_out: tout || null,
     has_boarding: hasBt,
+    work_symbol: (/^[0-9.]+\s*[SCTsct]/.test(note)) ? note : null,
     notes: note,
     actual_slots: actSlots
   };
@@ -884,6 +885,7 @@ async function saveAllDailyRecords() {
         evening_in: tin || null,
         evening_out: tout || null,
         has_boarding: hasBt,
+        work_symbol: (/^[0-9.]+\s*[SCTsct]/.test(note)) ? note : null,
         notes: note,
         actual_slots: actSlots
       });
@@ -1019,7 +1021,11 @@ function renderMatrixTable(data) {
           const slots = Math.round(rawSlots * 100) / 100;
           const slotsFormatted = slots > 0 ? slots.toFixed(2).replace(/\.?0+$/, '') : '0';
           const hasBt = parseInt(att.has_boarding || 0) === 1;
-          if (slots > 0 && hasBt) {
+          const rawSym = (att.work_symbol && att.work_symbol !== '-' && att.work_symbol !== '0') ? att.work_symbol : '';
+          if (rawSym) {
+            cellText = rawSym;
+            cellClass = 'cell-tc';
+          } else if (slots > 0 && hasBt) {
             cellText = `${slotsFormatted}+BT`;
             cellClass = 'cell-tc';
           } else if (slots > 0) {

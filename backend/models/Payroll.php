@@ -50,7 +50,7 @@ class Payroll {
      */
     public function calculateMonth(int $branchId, string $salaryType, int $month, int $year): array {
         $empModel = new Employee();
-        $employees = $empModel->getList($branchId, $salaryType, 'ACTIVE');
+        $employees = $empModel->getList($branchId, $salaryType, '', $month, $year);
 
         if (empty($employees)) {
             return [];
@@ -234,26 +234,19 @@ class Payroll {
                 ]);
             } else {
                 // TỔNG HỢP LƯƠNG THEO GIỜ / THEO CA
-                $totalSlots = 0.0;
-                $boardingDays = 0;
+                $slotBreakdown = self::calculateHourlySlots($attendanceList, $emp, $config);
+                $totalSlots = $slotBreakdown['total_slots'];
+                $salaryBySlots = $slotBreakdown['salary_by_slots'];
+                $boardingDays = $slotBreakdown['boarding_days'];
 
-                foreach ($attendanceList as $a) {
-                    // CHỈ TÍNH THEO SỐ CA THỰC TẾ ĐƯỢC QUẢN LÝ XÁC NHẬN (actual_slots)
-                    $rawSlots = ($a['actual_slots'] !== null && $a['actual_slots'] !== '') ? str_replace(',', '.', (string)$a['actual_slots']) : '0';
-                    $slots = round((float)$rawSlots, 2);
-                    $totalSlots += $slots;
-                    if (!empty($a['has_boarding'])) {
-                        $boardingDays++;
+                if ($slotBreakdown['has_diff_rates'] && empty($note) && $totalSlots > 0) {
+                    $note = "{$slotBreakdown['morning_slots']} ca sáng x " . number_format($slotBreakdown['morning_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['morning_pay'], 0, ',', '.') . "đ. {$slotBreakdown['evening_slots']} ca chiều/tối x " . number_format($slotBreakdown['evening_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['evening_pay'], 0, ',', '.') . "đ. Tổng {$totalSlots} ca: " . number_format($salaryBySlots, 0, ',', '.') . "đ.";
+                    if (empty($directorReview)) {
+                        $directorReview = $note;
                     }
                 }
-                $totalSlots = round($totalSlots, 2);
 
-                $slotRate = (float)($emp['hourly_rate'] ?: ($config['default_slot_rate'] ?? 120000));
                 $boardRate = (float)$emp['boarding_allowance'];
-
-                // Tiền lương theo ca
-                $salaryBySlots = round($totalSlots * $slotRate);
-                // Phụ cấp bán trú: Số ngày BT * Đơn giá BT
                 $boardPay = round($boardingDays * $boardRate);
                 $travelAllowance = (float)($emp['travel_allowance'] ?? 0);
 
@@ -311,6 +304,97 @@ class Payroll {
         }
 
         return $results;
+    }
+
+    /**
+     * Tách và tính toán chi tiết số ca dạy theo buổi (Sáng: 120k, Chiều & Tối: 100k)
+     * Nhận diện thông minh ký hiệu: 1S+1T, 1S+2CT, 1S+1C+1T, 1T, 2S...
+     */
+    public static function calculateHourlySlots(array $attendanceList, array $emp, array $config): array {
+        $totalSlots = 0.0;
+        $morningSlots = 0.0;
+        $eveningSlots = 0.0;
+        $boardingDays = 0;
+
+        $morningRate = (float)(!empty($emp['official_hourly_rate']) ? $emp['official_hourly_rate'] : 120000);
+        $eveningRate = (float)(!empty($emp['probation_hourly_rate']) ? $emp['probation_hourly_rate'] : 100000);
+        $defaultRate = (float)(!empty($emp['hourly_rate']) ? $emp['hourly_rate'] : ($config['default_slot_rate'] ?? 120000));
+
+        $hasDiffRates = ($morningRate != $eveningRate && $morningRate > 0 && $eveningRate > 0);
+
+        foreach ($attendanceList as $a) {
+            if (!empty($a['has_boarding'])) {
+                $boardingDays++;
+            }
+
+            $rawAct = ($a['actual_slots'] !== null && $a['actual_slots'] !== '') ? (float)str_replace(',', '.', (string)$a['actual_slots']) : null;
+            $workSym = trim((string)($a['work_symbol'] ?? ''));
+            $note = trim((string)($a['notes'] ?? ''));
+            $combineText = mb_strtoupper($workSym . ' ' . $note, 'UTF-8');
+
+            $dayM = 0.0;
+            $dayE = 0.0;
+
+            if ($hasDiffRates) {
+                // Chuẩn hóa và bóc tách
+                $clean = preg_replace('/\bCA\b/u', '', $combineText);
+                $clean = preg_replace('/CHIỀU\s*[\+\&\,]?\s*TỐI/u', 'CT', $clean);
+                $clean = preg_replace('/SÁNG/u', 'S', $clean);
+                $clean = preg_replace('/CHIỀU/u', 'C', $clean);
+                $clean = preg_replace('/TỐI/u', 'T', $clean);
+
+                if (preg_match('/(\d+(?:\.\d+)?)\s*S/u', $clean, $m)) {
+                    $dayM += (float)$m[1];
+                }
+                if (preg_match('/(\d+(?:\.\d+)?)\s*CT/u', $clean, $m)) {
+                    $dayE += (float)$m[1];
+                } else {
+                    if (preg_match('/(\d+(?:\.\d+)?)\s*C(?!T)/u', $clean, $m)) {
+                        $dayE += (float)$m[1];
+                    }
+                    if (preg_match('/(\d+(?:\.\d+)?)\s*T/u', $clean, $m)) {
+                        $dayE += (float)$m[1];
+                    }
+                }
+
+                if ($dayM > 0 || $dayE > 0) {
+                    $morningSlots += $dayM;
+                    $eveningSlots += $dayE;
+                    $totalSlots += ($dayM + $dayE);
+                    continue;
+                }
+            }
+
+            $slots = ($rawAct !== null) ? round($rawAct, 2) : 0;
+            $totalSlots += $slots;
+            $eveningSlots += $slots;
+        }
+
+        $totalSlots = round($totalSlots, 2);
+        $morningSlots = round($morningSlots, 2);
+        $eveningSlots = round($eveningSlots, 2);
+
+        $morningPay = round($morningSlots * $morningRate);
+        $eveningPay = round($eveningSlots * $eveningRate);
+
+        if ($hasDiffRates && ($morningSlots > 0 || $eveningSlots > 0)) {
+            $salaryBySlots = $morningPay + $eveningPay;
+        } else {
+            $salaryBySlots = round($totalSlots * $defaultRate);
+        }
+
+        return [
+            'total_slots' => $totalSlots,
+            'morning_slots' => $morningSlots,
+            'evening_slots' => $eveningSlots,
+            'morning_rate' => $morningRate,
+            'evening_rate' => $eveningRate,
+            'morning_pay' => $morningPay,
+            'evening_pay' => $eveningPay,
+            'salary_by_slots' => $salaryBySlots,
+            'boarding_days' => $boardingDays,
+            'has_diff_rates' => $hasDiffRates
+        ];
     }
 
     private function savePayrollRecord(array $d): void {

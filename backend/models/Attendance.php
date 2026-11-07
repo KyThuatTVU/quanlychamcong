@@ -14,7 +14,10 @@ class Attendance {
      */
     public function getDayAttendance(int $branchId, string $salaryType, string $workDate): array {
         $empModel = new Employee();
-        $employees = $empModel->getList($branchId, $salaryType, 'ACTIVE');
+        $dObj = strtotime($workDate);
+        $m = (int)date('n', $dObj);
+        $y = (int)date('Y', $dObj);
+        $employees = $empModel->getList($branchId, $salaryType, '', $m, $y);
 
         if (empty($employees)) {
             return [];
@@ -57,7 +60,7 @@ class Attendance {
      */
     public function getMonthMatrix(int $branchId, string $salaryType, int $month, int $year): array {
         $empModel = new Employee();
-        $employees = $empModel->getList($branchId, $salaryType, 'ACTIVE');
+        $employees = $empModel->getList($branchId, $salaryType, '', $month, $year);
 
         if (empty($employees)) {
             return [];
@@ -287,15 +290,20 @@ class Attendance {
             }
             $confirmStatus = ($totMins > 0 || $hasBoarding || $actualSlots !== null) ? 'Đã xác nhận' : 'Chưa nhập';
 
+            $workSymbol = !empty($data['work_symbol']) ? trim($data['work_symbol']) : '-';
+            $salarySymbol = !empty($data['salary_symbol']) ? trim($data['salary_symbol']) : $workSymbol;
+
             $sql = "INSERT INTO daily_attendance (
-                employee_id, work_date, morning_in, morning_out, morning_minutes,
+                employee_id, work_date, work_symbol, salary_symbol, morning_in, morning_out, morning_minutes,
                 afternoon_in, afternoon_out, afternoon_minutes, evening_in, evening_out, evening_minutes,
                 total_minutes, total_slots, has_boarding, actual_slots, confirmation_status, notes
             ) VALUES (
-                :employee_id, :work_date, :morning_in, :morning_out, :morning_minutes,
+                :employee_id, :work_date, :work_symbol, :salary_symbol, :morning_in, :morning_out, :morning_minutes,
                 :afternoon_in, :afternoon_out, :afternoon_minutes, :evening_in, :evening_out, :evening_minutes,
                 :total_minutes, :total_slots, :has_boarding, :actual_slots, :confirmation_status, :notes
             ) ON DUPLICATE KEY UPDATE
+                work_symbol = VALUES(work_symbol),
+                salary_symbol = VALUES(salary_symbol),
                 morning_in = VALUES(morning_in),
                 morning_out = VALUES(morning_out),
                 morning_minutes = VALUES(morning_minutes),
@@ -316,6 +324,8 @@ class Attendance {
             $stmt->execute([
                 ':employee_id' => $employeeId,
                 ':work_date' => $workDate,
+                ':work_symbol' => $workSymbol,
+                ':salary_symbol' => $salarySymbol,
                 ':morning_in' => $mIn,
                 ':morning_out' => $mOut,
                 ':morning_minutes' => $mMins,
@@ -393,25 +403,25 @@ class Attendance {
                 : (float)($emp['attendance_allowance'] ?? 0.0);
 
             if ($salaryType === 'HOURLY') {
-                // TÍNH TỔNG CA THỰC TẾ ĐƯỢC XÁC NHẬN (chỉ lấy actual_slots, không tính từ giờ vào/ra)
-                $aggStmt = $this->db->prepare("
-                    SELECT 
-                        COALESCE(SUM(actual_slots), 0) as tot_slots,
-                        SUM(CASE WHEN has_boarding = 1 THEN 1 ELSE 0 END) as tot_bt
-                    FROM daily_attendance
-                    WHERE employee_id = :emp_id AND work_date BETWEEN :start AND :end
-                ");
-                $aggStmt->execute([':emp_id' => $employeeId, ':start' => $startDate, ':end' => $endDate]);
-                $agg = $aggStmt->fetch();
+                $attStmt = $this->db->prepare("SELECT * FROM daily_attendance WHERE employee_id = :emp_id AND work_date BETWEEN :start AND :end");
+                $attStmt->execute([':emp_id' => $employeeId, ':start' => $startDate, ':end' => $endDate]);
+                $attList = $attStmt->fetchAll();
 
-                $totalSlots = (float)($agg['tot_slots'] ?? 0);
-                $boardingDays = (int)($agg['tot_bt'] ?? 0);
+                require_once __DIR__ . '/Payroll.php';
+                $slotBreakdown = Payroll::calculateHourlySlots($attList, $emp, $config);
+                $totalSlots = $slotBreakdown['total_slots'];
+                $salaryBySlots = $slotBreakdown['salary_by_slots'];
+                $boardingDays = $slotBreakdown['boarding_days'];
 
-                $slotRate = (float)($emp['hourly_rate'] ?: ($config['default_slot_rate'] ?? 120000));
+                if ($slotBreakdown['has_diff_rates'] && empty($note) && $totalSlots > 0) {
+                    $note = "{$slotBreakdown['morning_slots']} ca sáng x " . number_format($slotBreakdown['morning_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['morning_pay'], 0, ',', '.') . "đ. {$slotBreakdown['evening_slots']} ca chiều/tối x " . number_format($slotBreakdown['evening_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['evening_pay'], 0, ',', '.') . "đ. Tổng {$totalSlots} ca: " . number_format($salaryBySlots, 0, ',', '.') . "đ.";
+                    if (empty($directorReview)) {
+                        $directorReview = $note;
+                    }
+                }
+
                 $boardRate = (float)($emp['boarding_allowance'] ?? 0);
                 $travelAllowance = (float)($emp['travel_allowance'] ?? 0);
-
-                $salaryBySlots = round($totalSlots * $slotRate);
                 $boardPay = round($boardingDays * $boardRate);
                 $totalIncome = $salaryBySlots + $boardPay + $attAllowance + $travelAllowance + $bonus;
                 $netSalary = max(0, $totalIncome - $deductions);

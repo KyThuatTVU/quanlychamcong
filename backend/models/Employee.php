@@ -214,7 +214,7 @@ class Employee {
         } catch (Throwable $e) {}
     }
 
-    public function getList(int $branchId = 0, string $salaryType = '', string $status = 'ACTIVE'): array {
+    public function getList(int $branchId = 0, string $salaryType = '', string $status = 'ACTIVE', int $month = 0, int $year = 0): array {
         $sql = "SELECT e.*, b.name as branch_name, b.code as branch_code,
                        u.id as user_id, u.username as user_username, u.email as user_email,
                        u.role as user_role, u.status as user_status,
@@ -233,7 +233,34 @@ class Employee {
             $sql .= " AND e.salary_type = :salary_type";
             $params[':salary_type'] = $salaryType;
         }
-        if (!empty($status)) {
+
+        if ($status === 'ALL') {
+            // Lấy tất cả, không lọc status
+        } elseif ($month > 0 && $year > 0) {
+            // LỌC THÔNG MINH THEO KỲ:
+            // Lấy nhân viên ACTIVE HOẶC nhân viên đã nghỉ nhưng có dữ liệu chấm công / bảng lương trong tháng đó!
+            $startDate = sprintf('%04d-%02d-01', $year, $month);
+            $daysInM = (int)date('t', strtotime($startDate));
+            $endDate = sprintf('%04d-%02d-%02d', $year, $month, $daysInM);
+
+            $sql .= " AND (
+                e.status = 'ACTIVE' 
+                OR EXISTS (
+                    SELECT 1 FROM monthly_payroll p 
+                    WHERE p.employee_id = e.id AND p.month = :p_month AND p.year = :p_year
+                )
+                OR EXISTS (
+                    SELECT 1 FROM daily_attendance a 
+                    WHERE a.employee_id = e.id 
+                      AND a.work_date BETWEEN :p_start AND :p_end
+                      AND (a.work_symbol NOT IN ('-', '', '0') OR a.total_slots > 0 OR a.time_in IS NOT NULL)
+                )
+            )";
+            $params[':p_month'] = $month;
+            $params[':p_year'] = $year;
+            $params[':p_start'] = $startDate;
+            $params[':p_end'] = $endDate;
+        } elseif (!empty($status)) {
             $sql .= " AND e.status = :status";
             $params[':status'] = $status;
         }

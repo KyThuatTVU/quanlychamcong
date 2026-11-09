@@ -258,10 +258,13 @@ class Payroll {
                 $salaryBySlots = $slotBreakdown['salary_by_slots'];
                 $boardingDays = $slotBreakdown['boarding_days'];
 
-                if ($slotBreakdown['has_diff_rates'] && empty($note) && $totalSlots > 0) {
-                    $note = "{$slotBreakdown['morning_slots']} ca sáng x " . number_format($slotBreakdown['morning_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['morning_pay'], 0, ',', '.') . "đ. {$slotBreakdown['evening_slots']} ca chiều/tối x " . number_format($slotBreakdown['evening_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['evening_pay'], 0, ',', '.') . "đ. Tổng {$totalSlots} ca: " . number_format($salaryBySlots, 0, ',', '.') . "đ.";
-                    if (empty($directorReview)) {
-                        $directorReview = $note;
+                if ($slotBreakdown['has_diff_rates'] && $totalSlots > 0) {
+                    $slotNote = "{$slotBreakdown['morning_slots']} ca sáng x " . number_format($slotBreakdown['morning_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['morning_pay'], 0, ',', '.') . "đ. {$slotBreakdown['evening_slots']} ca chiều/tối x " . number_format($slotBreakdown['evening_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['evening_pay'], 0, ',', '.') . "đ. Tổng {$totalSlots} ca: " . number_format($salaryBySlots, 0, ',', '.') . "đ.";
+                    if (empty($note) || stripos($note, 'ca sáng') !== false) {
+                        $note = $slotNote;
+                    }
+                    if (empty($directorReview) || stripos($directorReview, 'ca sáng') !== false) {
+                        $directorReview = $slotNote;
                     }
                 }
 
@@ -335,11 +338,23 @@ class Payroll {
         $eveningSlots = 0.0;
         $boardingDays = 0;
 
-        $morningRate = (float)(!empty($emp['official_hourly_rate']) ? $emp['official_hourly_rate'] : 120000);
-        $eveningRate = (float)(!empty($emp['probation_hourly_rate']) ? $emp['probation_hourly_rate'] : 100000);
-        $defaultRate = (float)(!empty($emp['hourly_rate']) ? $emp['hourly_rate'] : ($config['default_slot_rate'] ?? 120000));
+        // CHỈ RIÊNG CÔ NGỌC (GV010) MỚI CÓ MỨC LƯƠNG ĐẶC BIỆT: SÁNG 120k, CHIỀU & TỐI 100k
+        $isCoNgoc = ((int)($emp['id'] ?? 0) === 11) 
+                 || (($emp['employee_code'] ?? '') === 'GV010' && stripos($emp['full_name'] ?? '', 'Ngọc') !== false);
 
-        $hasDiffRates = ($morningRate != $eveningRate && $morningRate > 0 && $eveningRate > 0);
+        if ($isCoNgoc) {
+            $morningRate = 120000;
+            $eveningRate = 100000;
+            $defaultRate = 100000;
+            $hasDiffRates = true;
+        } else {
+            $defaultRate = (float)(!empty($emp['hourly_rate']) 
+                ? $emp['hourly_rate'] 
+                : (!empty($emp['official_hourly_rate']) ? $emp['official_hourly_rate'] : ($config['default_slot_rate'] ?? 120000)));
+            $morningRate = $defaultRate;
+            $eveningRate = $defaultRate;
+            $hasDiffRates = false;
+        }
 
         foreach ($attendanceList as $a) {
             if (!empty($a['has_boarding'])) {
@@ -355,7 +370,7 @@ class Payroll {
             $dayE = 0.0;
 
             if ($hasDiffRates) {
-                // Chuẩn hóa và bóc tách
+                // 1. Chuẩn hóa và bóc tách theo ký hiệu công / ghi chú (1S, 1C, 1T, 1S+1T...)
                 $clean = preg_replace('/\bCA\b/u', '', $combineText);
                 $clean = preg_replace('/CHIỀU\s*[\+\&\,]?\s*TỐI/u', 'CT', $clean);
                 $clean = preg_replace('/SÁNG/u', 'S', $clean);
@@ -373,6 +388,22 @@ class Payroll {
                     }
                     if (preg_match('/(\d+(?:\.\d+)?)\s*T/u', $clean, $m)) {
                         $dayE += (float)$m[1];
+                    }
+                }
+
+                // 2. Nếu chưa nhận diện được qua ký hiệu chữ, kiểm tra thời gian phút thực tế của từng ca
+                if ($dayM == 0 && $dayE == 0) {
+                    $mMins = (int)($a['morning_minutes'] ?? 0);
+                    $aMins = (int)($a['afternoon_minutes'] ?? 0);
+                    $eMins = (int)($a['evening_minutes'] ?? 0);
+                    if ($mMins > 0) {
+                        $dayM += round($mMins / 90.0, 2);
+                    }
+                    if ($aMins > 0) {
+                        $dayE += round($aMins / 90.0, 2);
+                    }
+                    if ($eMins > 0) {
+                        $dayE += round($eMins / 90.0, 2);
                     }
                 }
 
@@ -730,6 +761,28 @@ class Payroll {
             $base = (float)$res['base_salary'];
             if ($std > 0 && $base > 0) {
                 $res['daily_salary_rate'] = round($base / $std, 2);
+            }
+
+            if ($res['salary_type'] === 'HOURLY') {
+                $startDate = sprintf('%04d-%02d-01', $year, $month);
+                $daysInMonth = (int)date('t', strtotime($startDate));
+                $endDate = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
+                $attStmt = $this->db->prepare("SELECT * FROM daily_attendance WHERE employee_id = :emp_id AND work_date BETWEEN :start AND :end");
+                $attStmt->execute([':emp_id' => $empId, ':start' => $startDate, ':end' => $endDate]);
+                $attList = $attStmt->fetchAll();
+
+                $cfgStmt = $this->db->prepare("SELECT * FROM system_config WHERE branch_id = :branch_id LIMIT 1");
+                $cfgStmt->execute([':branch_id' => $res['branch_id'] ?? 1]);
+                $config = $cfgStmt->fetch() ?: [];
+
+                $breakdown = self::calculateHourlySlots($attList, $res, $config);
+                $res['morning_slots'] = $breakdown['morning_slots'];
+                $res['evening_slots'] = $breakdown['evening_slots'];
+                $res['morning_rate'] = $breakdown['morning_rate'];
+                $res['evening_rate'] = $breakdown['evening_rate'];
+                $res['morning_pay'] = $breakdown['morning_pay'];
+                $res['evening_pay'] = $breakdown['evening_pay'];
+                $res['has_diff_rates'] = $breakdown['has_diff_rates'];
             }
         }
         return $res ?: null;

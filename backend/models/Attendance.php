@@ -20,7 +20,8 @@ class Attendance {
         $employees = $empModel->getList($branchId, $salaryType, '', $m, $y);
 
         // Lọc bỏ nhân sự quản lý / kỹ thuật làm online hoặc lương khoán không cần chấm công hàng ngày
-        $employees = array_values(array_filter($employees, function($emp) {
+        // VÀ lọc bỏ nhân sự đã nghỉ việc trước ngày này hoặc chưa đến ngày bắt đầu làm việc
+        $employees = array_values(array_filter($employees, function($emp) use ($workDate) {
             $isOnline = ($emp['employee_code'] === 'NV001')
                      || ((int)$emp['id'] === 25)
                      || (stripos($emp['full_name'] ?? '', 'Kiều Trân') !== false)
@@ -28,7 +29,21 @@ class Attendance {
                      || (stripos($emp['notes'] ?? '', 'online') !== false)
                      || (stripos($emp['notes'] ?? '', 'khoán') !== false)
                      || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
-            return !$isOnline;
+            if ($isOnline) return false;
+
+            // Đã có trạng thái nghỉ việc:
+            if ($emp['status'] === 'RESIGNED') {
+                if (empty($emp['resigned_date']) || $workDate > $emp['resigned_date']) {
+                    return false;
+                }
+            }
+
+            // Chưa đến ngày vào làm:
+            if (!empty($emp['start_date']) && $workDate < $emp['start_date']) {
+                return false;
+            }
+
+            return true;
         }));
 
         if (empty($employees)) {
@@ -74,8 +89,13 @@ class Attendance {
         $empModel = new Employee();
         $employees = $empModel->getList($branchId, $salaryType, '', $month, $year);
 
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $daysInMonth = (int)date('t', strtotime($startDate));
+        $endDate = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
+
         // Lọc bỏ nhân sự quản lý / kỹ thuật làm online hoặc lương khoán không cần chấm công hàng ngày
-        $employees = array_values(array_filter($employees, function($emp) {
+        // VÀ lọc bỏ nhân sự đã nghỉ việc trước tháng này hoặc chưa đến ngày vào làm
+        $employees = array_values(array_filter($employees, function($emp) use ($startDate, $endDate) {
             $isOnline = ($emp['employee_code'] === 'NV001')
                      || ((int)$emp['id'] === 25)
                      || (stripos($emp['full_name'] ?? '', 'Kiều Trân') !== false)
@@ -83,8 +103,27 @@ class Attendance {
                      || (stripos($emp['notes'] ?? '', 'online') !== false)
                      || (stripos($emp['notes'] ?? '', 'khoán') !== false)
                      || (stripos($emp['notes'] ?? '', 'không chấm') !== false);
-            return !$isOnline;
+            if ($isOnline) return false;
+
+            // Đã có trạng thái nghỉ việc:
+            if ($emp['status'] === 'RESIGNED') {
+                // Đã nghỉ trước tháng này hoặc không có ngày nghỉ việc -> LOẠI KHỎI MA TRẬN
+                if (empty($emp['resigned_date']) || $emp['resigned_date'] < $startDate) {
+                    return false;
+                }
+            }
+
+            // Chưa đến ngày vào làm trong tháng này:
+            if (!empty($emp['start_date']) && $emp['start_date'] > $endDate) {
+                return false;
+            }
+
+            return true;
         }));
+
+        if (empty($employees)) {
+            return [];
+        }
 
         if (empty($employees)) {
             return [];
@@ -437,10 +476,13 @@ class Attendance {
                 $salaryBySlots = $slotBreakdown['salary_by_slots'];
                 $boardingDays = $slotBreakdown['boarding_days'];
 
-                if ($slotBreakdown['has_diff_rates'] && empty($note) && $totalSlots > 0) {
-                    $note = "{$slotBreakdown['morning_slots']} ca sáng x " . number_format($slotBreakdown['morning_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['morning_pay'], 0, ',', '.') . "đ. {$slotBreakdown['evening_slots']} ca chiều/tối x " . number_format($slotBreakdown['evening_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['evening_pay'], 0, ',', '.') . "đ. Tổng {$totalSlots} ca: " . number_format($salaryBySlots, 0, ',', '.') . "đ.";
-                    if (empty($directorReview)) {
-                        $directorReview = $note;
+                if ($slotBreakdown['has_diff_rates'] && $totalSlots > 0) {
+                    $slotNote = "{$slotBreakdown['morning_slots']} ca sáng x " . number_format($slotBreakdown['morning_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['morning_pay'], 0, ',', '.') . "đ. {$slotBreakdown['evening_slots']} ca chiều/tối x " . number_format($slotBreakdown['evening_rate'], 0, ',', '.') . "đ = " . number_format($slotBreakdown['evening_pay'], 0, ',', '.') . "đ. Tổng {$totalSlots} ca: " . number_format($salaryBySlots, 0, ',', '.') . "đ.";
+                    if (empty($note) || stripos($note, 'ca sáng') !== false) {
+                        $note = $slotNote;
+                    }
+                    if (empty($directorReview) || stripos($directorReview, 'ca sáng') !== false) {
+                        $directorReview = $slotNote;
                     }
                 }
 
@@ -466,7 +508,9 @@ class Attendance {
                     salary_by_slots = VALUES(salary_by_slots),
                     boarding_pay = VALUES(boarding_pay),
                     total_income = VALUES(total_income),
-                    net_salary = VALUES(net_salary)";
+                    net_salary = VALUES(net_salary),
+                    note = VALUES(note),
+                    director_review = VALUES(director_review)";
 
                 $stmt = $this->db->prepare($saveSql);
                 $stmt->execute([

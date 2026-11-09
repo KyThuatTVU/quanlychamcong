@@ -272,7 +272,12 @@ async function loadDailyAttendance() {
   });
 
   if (res.status === 'success' && res.data) {
-    dailyEmployeesList = res.data.employees || [];
+    dailyEmployeesList = (res.data.employees || []).filter(emp => {
+      if (emp.status === 'RESIGNED') {
+        if (!emp.resigned_date || currentWorkDate > emp.resigned_date) return false;
+      }
+      return true;
+    });
     if (currentSalaryType === 'FIXED') {
       renderDailyFixedTable(dailyEmployeesList);
     } else {
@@ -634,6 +639,12 @@ function renderDailyHourlyTable(employees) {
     const rowClass = isEntered ? '' : 'row-unentered'; // Hàng chưa nhập tô đỏ y hệt ảnh 2
     const confirmStatus = att.confirmation_status || (isEntered ? 'Đã xác nhận' : 'Chưa nhập');
 
+    const workSym = (att.work_symbol || '').toUpperCase();
+    const notesText = (att.notes || '').toUpperCase();
+    const hasMorning = (smins > 0) || (sin && sout) || workSym.includes('S') || notesText.includes('SÁNG') || notesText.includes('1S');
+    const hasAfternoon = (cmins > 0) || (cin && cout) || workSym.includes('C') || notesText.includes('CHIỀU') || notesText.includes('1C');
+    const hasEvening = (tmins > 0) || (tin && tout) || workSym.includes('T') || notesText.includes('TỐI') || notesText.includes('1T');
+
     html += `
       <tr class="${rowClass}" id="hourly-row-${emp.id}">
         <td><strong>${index + 1}</strong></td>
@@ -641,6 +652,24 @@ function renderDailyHourlyTable(employees) {
         <td class="text-left"><strong>${emp.full_name}</strong></td>
         <td class="text-left" style="font-size: 12px;">${emp.position || '-'}</td>
         <td style="font-size: 12px; font-weight: 500;">${emp.time_frame || 'Linh động (1 ca)'}</td>
+
+        <!-- 👉 BẤM TÍCH CHỌN CA (BẢO MẬT, KHÔNG HIỆN SỐ TIỀN) -->
+        <td style="text-align: center; vertical-align: middle;">
+          <div class="shift-pills-container">
+            <label class="shift-check-pill ${hasMorning ? 'checked-morning' : ''}" id="lbl-s-${emp.id}" title="Ca sáng">
+              <input type="checkbox" id="chk-s-${emp.id}" ${hasMorning ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
+              <span>☀️ Sáng</span>
+            </label>
+            <label class="shift-check-pill ${hasAfternoon ? 'checked-afternoon' : ''}" id="lbl-c-${emp.id}" title="Ca chiều">
+              <input type="checkbox" id="chk-c-${emp.id}" ${hasAfternoon ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
+              <span>🌤️ Chiều</span>
+            </label>
+            <label class="shift-check-pill ${hasEvening ? 'checked-evening' : ''}" id="lbl-t-${emp.id}" title="Ca tối">
+              <input type="checkbox" id="chk-t-${emp.id}" ${hasEvening ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
+              <span>🌙 Tối</span>
+            </label>
+          </div>
+        </td>
 
         <!-- CA SÁNG -->
         <td><input type="text" class="cell-input-time" id="h-sin-${emp.id}" value="${sin}" placeholder="07:30" maxlength="5" onblur="onTimeBlur(this, ${emp.id}, 'hourly')" onchange="onHourlyInputChange(${emp.id})"></td>
@@ -745,6 +774,17 @@ window.onHourlyInputChange = function(empId) {
   document.getElementById(`txt-cmins-${empId}`).textContent = cmins > 0 ? cmins : '-';
   document.getElementById(`txt-tmins-${empId}`).textContent = tmins > 0 ? tmins : '-';
 
+  // Đồng bộ trạng thái checkbox theo giờ thực tế nếu người dùng gõ tay giờ
+  const chkS = document.getElementById(`chk-s-${empId}`);
+  const chkC = document.getElementById(`chk-c-${empId}`);
+  const chkT = document.getElementById(`chk-t-${empId}`);
+  const lblS = document.getElementById(`lbl-s-${empId}`);
+  const lblC = document.getElementById(`lbl-c-${empId}`);
+  const lblT = document.getElementById(`lbl-t-${empId}`);
+  if (chkS && smins > 0 && !chkS.checked) { chkS.checked = true; lblS?.classList.add('checked-morning'); }
+  if (chkC && cmins > 0 && !chkC.checked) { chkC.checked = true; lblC?.classList.add('checked-afternoon'); }
+  if (chkT && tmins > 0 && !chkT.checked) { chkT.checked = true; lblT?.classList.add('checked-evening'); }
+
   const totMins = smins + cmins + tmins;
   document.getElementById(`txt-totmins-${empId}`).textContent = totMins > 0 ? totMins : '-';
 
@@ -764,17 +804,86 @@ window.onHourlyInputChange = function(empId) {
 
   const hasBt = document.getElementById(`h-bt-${empId}`)?.value === '1';
 
-  if (totMins > 0 || hasBt) {
+  if (totMins > 0 || hasBt || (actVal !== '' && !isNaN(parseFloat(actVal)))) {
     row.classList.remove('row-unentered');
     document.getElementById(`txt-hconfirm-${empId}`).innerHTML = `<span class="badge-excel-confirmed">Đã xác nhận</span>`;
-    // NGHIỆP VỤ BẮT BUỘC: Tuyệt đối không tự động gán actInput.value từ totSlots!
-    // Số ca thực tế được tính lương do người quản lý trực tiếp nhập hoặc xác nhận.
   } else {
     row.classList.add('row-unentered');
     document.getElementById(`txt-hconfirm-${empId}`).innerHTML = `<span class="badge-excel-unentered">Chưa nhập</span>`;
   }
 
   saveSingleDailyHourly(empId);
+};
+
+// 👉 XỬ LÝ KHI BẤM TÍCH VÀO Ô CA SÁNG / CHIỀU / TỐI (TÍNH TIỀN TỰ ĐỘNG)
+window.onShiftCheckboxChange = function(empId) {
+  const chkS = document.getElementById(`chk-s-${empId}`);
+  const chkC = document.getElementById(`chk-c-${empId}`);
+  const chkT = document.getElementById(`chk-t-${empId}`);
+  const lblS = document.getElementById(`lbl-s-${empId}`);
+  const lblC = document.getElementById(`lbl-c-${empId}`);
+  const lblT = document.getElementById(`lbl-t-${empId}`);
+
+  const inSin = document.getElementById(`h-sin-${empId}`);
+  const inSout = document.getElementById(`h-sout-${empId}`);
+  const inCin = document.getElementById(`h-cin-${empId}`);
+  const inCout = document.getElementById(`h-cout-${empId}`);
+  const inTin = document.getElementById(`h-tin-${empId}`);
+  const inTout = document.getElementById(`h-tout-${empId}`);
+  const actInput = document.getElementById(`h-actslots-${empId}`);
+  const noteInput = document.getElementById(`h-note-${empId}`);
+
+  const isS = Boolean(chkS && chkS.checked);
+  const isC = Boolean(chkC && chkC.checked);
+  const isT = Boolean(chkT && chkT.checked);
+
+  if (lblS) lblS.classList.toggle('checked-morning', isS);
+  if (lblC) lblC.classList.toggle('checked-afternoon', isC);
+  if (lblT) lblT.classList.toggle('checked-evening', isT);
+
+  // Tự động điền hoặc xóa giờ vào ra chuẩn
+  if (isS) {
+    if (inSin && !inSin.value) inSin.value = '08:00';
+    if (inSout && !inSout.value) inSout.value = '09:30';
+  } else {
+    if (inSin) inSin.value = '';
+    if (inSout) inSout.value = '';
+  }
+
+  if (isC) {
+    if (inCin && !inCin.value) inCin.value = '14:00';
+    if (inCout && !inCout.value) inCout.value = '15:30';
+  } else {
+    if (inCin) inCin.value = '';
+    if (inCout) inCout.value = '';
+  }
+
+  if (isT) {
+    if (inTin && !inTin.value) inTin.value = '17:30';
+    if (inTout && !inTout.value) inTout.value = '19:00';
+  } else {
+    if (inTin) inTin.value = '';
+    if (inTout) inTout.value = '';
+  }
+
+  // Tạo ký hiệu ca: 1S, 1C, 1T, 1S+1T...
+  const parts = [];
+  let slots = 0;
+  if (isS) { parts.push('1S'); slots++; }
+  if (isC) { parts.push('1C'); slots++; }
+  if (isT) { parts.push('1T'); slots++; }
+
+  const sym = parts.join('+');
+  if (actInput) actInput.value = slots > 0 ? slots : '';
+  if (noteInput) {
+    if (sym) {
+      noteInput.value = sym;
+    } else if (/^[0-9.]+\s*[SCTsct]/.test(noteInput.value)) {
+      noteInput.value = '';
+    }
+  }
+
+  onHourlyInputChange(empId);
 };
 
 // Lưu 1 dòng lương cứng
@@ -818,6 +927,19 @@ async function saveSingleDailyHourly(empId) {
   const actSlots = (actVal !== '' && actVal !== null && !isNaN(parseFloat(actVal))) ? parseFloat(actVal) : null;
   onActualSlotsInput(empId);
 
+  const chkS = document.getElementById(`chk-s-${empId}`);
+  const chkC = document.getElementById(`chk-c-${empId}`);
+  const chkT = document.getElementById(`chk-t-${empId}`);
+  const isS = Boolean(chkS && chkS.checked);
+  const isC = Boolean(chkC && chkC.checked);
+  const isT = Boolean(chkT && chkT.checked);
+  const parts = [];
+  if (isS) parts.push('1S');
+  if (isC) parts.push('1C');
+  if (isT) parts.push('1T');
+  const calcSym = parts.join('+');
+  const symToSave = (/^[0-9.]+\s*[SCTsct]/.test(note)) ? note : (calcSym || null);
+
   const payload = {
     employee_id: empId,
     work_date: currentWorkDate,
@@ -828,7 +950,7 @@ async function saveSingleDailyHourly(empId) {
     evening_in: tin || null,
     evening_out: tout || null,
     has_boarding: hasBt,
-    work_symbol: (/^[0-9.]+\s*[SCTsct]/.test(note)) ? note : null,
+    work_symbol: symToSave,
     notes: note,
     actual_slots: actSlots
   };
@@ -875,6 +997,20 @@ async function saveAllDailyRecords() {
       const note = document.getElementById(`h-note-${emp.id}`)?.value.trim();
       const actVal = String(document.getElementById(`h-actslots-${emp.id}`)?.value || '').trim().replace(',', '.');
       const actSlots = (actVal !== '' && actVal !== null && !isNaN(parseFloat(actVal))) ? parseFloat(actVal) : null;
+
+      const chkS = document.getElementById(`chk-s-${emp.id}`);
+      const chkC = document.getElementById(`chk-c-${emp.id}`);
+      const chkT = document.getElementById(`chk-t-${emp.id}`);
+      const isS = Boolean(chkS && chkS.checked);
+      const isC = Boolean(chkC && chkC.checked);
+      const isT = Boolean(chkT && chkT.checked);
+      const parts = [];
+      if (isS) parts.push('1S');
+      if (isC) parts.push('1C');
+      if (isT) parts.push('1T');
+      const calcSym = parts.join('+');
+      const symToSave = (/^[0-9.]+\s*[SCTsct]/.test(note)) ? note : (calcSym || null);
+
       batch.push({
         employee_id: emp.id,
         work_date: currentWorkDate,
@@ -885,7 +1021,7 @@ async function saveAllDailyRecords() {
         evening_in: tin || null,
         evening_out: tout || null,
         has_boarding: hasBt,
-        work_symbol: (/^[0-9.]+\s*[SCTsct]/.test(note)) ? note : null,
+        work_symbol: symToSave,
         notes: note,
         actual_slots: actSlots
       });
@@ -930,7 +1066,13 @@ function renderMatrixTable(data) {
   }
 
   const daysInMonth = data.days_in_month || 31;
-  const employees = data.employees || [];
+  const startOfMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+  const employees = (data.employees || []).filter(emp => {
+    if (emp.status === 'RESIGNED') {
+      if (!emp.resigned_date || emp.resigned_date < startOfMonthStr) return false;
+    }
+    return true;
+  });
   const thead = document.getElementById('matrix-thead');
   const tbody = document.getElementById('matrix-tbody');
 

@@ -645,6 +645,18 @@
                   <input type="text" class="slip-cell-input" id="inp-slot-rate" value="0 đ" onfocus="onSlipSlotRateFocus(this)" onblur="onSlipSlotRateBlur(this)" oninput="onSlipSlotRateInput();" style="color: #1D4ED8; font-weight: 600;">
                 </td>
               </tr>
+              <!-- 7c. CHI TIẾT CA SÁNG / TỐI (CHO CÔ NGỌC & MỨC LƯƠNG ĐẶC THÙ) -->
+              <tr id="row-slot-breakdown" style="display: none; background: #F0FDF4;">
+                <td class="excel-col-label" style="font-size: 12px; color: #166534; vertical-align: top;">
+                  <div style="font-weight: 700;"><i class="fas fa-calculator"></i> Chi tiết tính ca</div>
+                  <div style="font-size: 11px; font-weight: normal; color: #15803D;">Minh bạch buổi dạy</div>
+                </td>
+                <td class="excel-col-val" style="font-size: 12.5px; padding: 8px 12px;">
+                  <div id="disp-slot-breakdown-box" style="line-height: 1.6; color: #166534;">
+                    <!-- JS điền chi tiết số ca sáng & chiều/tối -->
+                  </div>
+                </td>
+              </tr>
               <!-- 8. SỐ TIỀN (TIỀN CA / TĂNG CA) -->
               <tr>
                 <td class="excel-col-label">Số tiền</td>
@@ -983,17 +995,85 @@
       document.getElementById('inp-slots').value = slots;
       document.getElementById('inp-slot-money').value = formatMoney(slotMoney) + ' đ';
 
-      // Đơn giá 1 ca
-      let slotRate = 120000;
-      if (slots > 0 && slotMoney > 0) {
-        slotRate = Math.round(slotMoney / slots);
-      } else if (isFixed) {
-        slotRate = parseFloat(d.probation_hourly_rate || (emp ? (emp.probation_hourly_rate || emp.overtime_rate || 120000) : 120000));
+      // Đơn giá 1 ca & Chi tiết tính ca cho giáo viên
+      const isCoNgoc = (emp && emp.id == 11) || (d && (d.employee_id == 11 || (d.employee_code === 'GV010' && (d.full_name || '').includes('Ngọc'))));
+      const hasDiffRates = isCoNgoc || Boolean(d && d.has_diff_rates);
+
+      const rowBreakdown = document.getElementById('row-slot-breakdown');
+      const boxBreakdown = document.getElementById('disp-slot-breakdown-box');
+
+      if (hasDiffRates) {
+        if (document.getElementById('inp-slot-rate')) {
+          document.getElementById('inp-slot-rate').value = 'Sáng: 120k / Chiều, Tối: 100k';
+          document.getElementById('inp-slot-rate').title = 'Ca Sáng: 120.000 đ/ca, Ca Chiều & Tối: 100.000 đ/ca';
+          document.getElementById('inp-slot-rate').readOnly = true;
+          document.getElementById('inp-slot-rate').style.backgroundColor = '#F8FAFC';
+          document.getElementById('inp-slot-rate').style.color = '#1D4ED8';
+        }
+
+        if (rowBreakdown && boxBreakdown) {
+          let mSlots = parseFloat(d.morning_slots !== undefined ? d.morning_slots : 0);
+          let eSlots = parseFloat(d.evening_slots !== undefined ? d.evening_slots : 0);
+          const mRate = parseFloat(d.morning_rate || 120000);
+          const eRate = parseFloat(d.evening_rate || 100000);
+
+          // Phục hồi từ note nếu d chưa có trường riêng
+          if (mSlots === 0 && eSlots === 0 && (d.note || d.director_review)) {
+            const noteText = d.note || d.director_review || '';
+            const matchM = noteText.match(/(\d+(?:\.\d+)?)\s*ca sáng/i);
+            const matchE = noteText.match(/(\d+(?:\.\d+)?)\s*ca chiều/i);
+            if (matchM) mSlots = parseFloat(matchM[1]);
+            if (matchE) eSlots = parseFloat(matchE[1]);
+          }
+
+          // Dự phòng giải hệ phương trình: m + e = slots; 120k*m + 100k*e = slotMoney
+          if (mSlots === 0 && eSlots === 0 && slots > 0 && slotMoney > 0) {
+            const computedM = Math.round((slotMoney - eRate * slots) / (mRate - eRate));
+            if (computedM >= 0 && computedM <= slots) {
+              mSlots = computedM;
+              eSlots = Math.round(slots - computedM);
+            }
+          }
+
+          if (slots > 0) {
+            rowBreakdown.style.display = '';
+            const mPay = Math.round(mSlots * mRate);
+            const ePay = Math.round(eSlots * eRate);
+            boxBreakdown.innerHTML = `
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #BBF7D0; padding-bottom: 4px;">
+                  <span>☀️ <strong>${mSlots} ca sáng</strong> × ${formatMoney(mRate)}đ/ca:</span>
+                  <strong style="color: #047857;">${formatMoney(mPay)} đ</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #BBF7D0; padding-bottom: 4px;">
+                  <span>🌙 <strong>${eSlots} ca chiều & tối</strong> × ${formatMoney(eRate)}đ/ca:</span>
+                  <strong style="color: #047857;">${formatMoney(ePay)} đ</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #15803D; padding-top: 2px;">
+                  <span>👉 Tổng ${slots} ca:</span>
+                  <span style="font-size: 13px; color: #1E3A8A;">${formatMoney(slotMoney)} đ</span>
+                </div>
+              </div>
+            `;
+          } else {
+            rowBreakdown.style.display = 'none';
+          }
+        }
       } else {
-        slotRate = parseFloat(d.hourly_rate || (emp ? emp.hourly_rate : 120000)) || 120000;
-      }
-      if (document.getElementById('inp-slot-rate')) {
-        document.getElementById('inp-slot-rate').value = formatMoney(slotRate) + ' đ';
+        if (rowBreakdown) rowBreakdown.style.display = 'none';
+        let slotRate = 120000;
+        if (slots > 0 && slotMoney > 0) {
+          slotRate = Math.round(slotMoney / slots);
+        } else if (isFixed) {
+          slotRate = parseFloat(d.probation_hourly_rate || (emp ? (emp.probation_hourly_rate || emp.overtime_rate || 120000) : 120000));
+        } else {
+          slotRate = parseFloat(d.hourly_rate || (emp ? emp.hourly_rate : 120000)) || 120000;
+        }
+        if (document.getElementById('inp-slot-rate')) {
+          document.getElementById('inp-slot-rate').readOnly = false;
+          document.getElementById('inp-slot-rate').style.backgroundColor = '';
+          document.getElementById('inp-slot-rate').value = formatMoney(slotRate) + ' đ';
+        }
       }
 
       // Với giáo viên làm theo giờ (HOURLY)
@@ -1255,13 +1335,19 @@
       const emp = branchEmployees.find(e => e.id == currentEmpId);
       const stdDays = emp ? parseFloat(emp.standard_work_days || 26.0) : 26.0;
 
-      // Lương 1 ngày
-      const dailyRateExact = stdDays > 0 ? (baseSalary / stdDays) : 0;
-      document.getElementById('disp-daily-rate').textContent = formatMoney(Math.round(dailyRateExact)) + ' đ';
+      const isFixed = !emp || emp.salary_type === 'FIXED';
+
+      // Lương 1 ngày (Chỉ lương cứng mới chia ngày chuẩn; Lương ca nhân trực tiếp số ca thực tế)
+      if (isFixed) {
+        const dailyRateExact = stdDays > 0 ? (baseSalary / stdDays) : 0;
+        document.getElementById('disp-daily-rate').textContent = formatMoney(Math.round(dailyRateExact)) + ' đ';
+      } else {
+        document.getElementById('disp-daily-rate').textContent = '-';
+        document.getElementById('inp-days-x').value = 0;
+      }
 
       // Lương theo ngày công thực tế (Nếu đã có bản ghi CSDL và chưa sửa ngày công / lương cơ bản thì giữ nguyên để bảo toàn các case chia thử việc/chính thức)
       let salaryByDays = 0;
-      const isFixed = !emp || emp.salary_type === 'FIXED';
       if (isFixed) {
         const isDaysUnchanged = currentSlipData && parseFloat(currentSlipData.total_days_x || 0) === daysX;
         const isBaseUnchanged = currentSlipData && baseSalary === Math.round(parseFloat(currentSlipData.base_salary || currentSlipData.emp_base_salary || 0));
@@ -1491,8 +1577,11 @@
         }
         rowsData.push(['Số tiền', slotMoney, 'currency']);
       } else {
+        const isNgoc = (emp && emp.id == 11) || (currentSlipData && (currentSlipData.employee_id == 11 || (currentSlipData.employee_code === 'GV010' && (currentSlipData.full_name || '').includes('Ngọc'))));
         rowsData.push(['Lương cơ bản', 'Theo ca dạy', 'text']);
-        if (probH > 0 && probH !== offH) {
+        if (isNgoc) {
+          rowsData.push(['Chế độ ca', 'Sáng: 120.000 đ/ca | Chiều & Tối: 100.000 đ/ca', 'text']);
+        } else if (probH > 0 && probH !== offH) {
           rowsData.push(['Chế độ ca', `Ca TV: ${formatMoney(probH)} đ/ca | Ca CT: ${formatMoney(offH)} đ/ca`, 'text']);
         } else {
           rowsData.push(['Chế độ ca', `Ca chính thức: ${formatMoney(offH)} đ/ca`, 'text']);
@@ -1500,10 +1589,26 @@
         rowsData.push(
           ['Lương theo ngày', '-', 'text'],
           ['Số ngày', 0, 'number'],
-          ['Số ca', slots, 'number'],
-          ['Đơn giá 1 ca', slotRate, 'currency'],
-          ['Số tiền', slotMoney, 'currency']
+          ['Số ca', slots, 'number']
         );
+        if (isNgoc) {
+          rowsData.push(['Đơn giá 1 ca', 'Sáng: 120k | Chiều, Tối: 100k', 'text']);
+          let mSlots = parseFloat(currentSlipData?.morning_slots !== undefined ? currentSlipData.morning_slots : 0);
+          let eSlots = parseFloat(currentSlipData?.evening_slots !== undefined ? currentSlipData.evening_slots : 0);
+          if (mSlots === 0 && eSlots === 0 && slots > 0 && slotMoney > 0) {
+            const computedM = Math.round((slotMoney - 100000 * slots) / 20000);
+            if (computedM >= 0 && computedM <= slots) {
+              mSlots = computedM;
+              eSlots = Math.round(slots - computedM);
+            }
+          }
+          if (slots > 0) {
+            rowsData.push(['Chi tiết tính ca', `${mSlots} ca sáng (120k) + ${eSlots} ca tối (100k)`, 'text']);
+          }
+        } else {
+          rowsData.push(['Đơn giá 1 ca', slotRate, 'currency']);
+        }
+        rowsData.push(['Số tiền', slotMoney, 'currency']);
       }
 
       const boardPay = parseMoney(document.getElementById('inp-boarding')?.value || '0');
@@ -1710,12 +1815,14 @@
     }
 
     function onSlipSlotRateFocus(inputEl) {
+      if (inputEl.readOnly) return;
       const val = parseMoney(inputEl.value);
       inputEl.value = val > 0 ? val : '';
       inputEl.select();
     }
 
     function onSlipSlotRateBlur(inputEl) {
+      if (inputEl.readOnly) return;
       const rate = parseMoney(inputEl.value);
       inputEl.value = formatMoney(rate) + ' đ';
       const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
@@ -1726,7 +1833,9 @@
     }
 
     function onSlipSlotRateInput() {
-      const rate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
+      const inp = document.getElementById('inp-slot-rate');
+      if (inp && inp.readOnly) return;
+      const rate = parseMoney(inp?.value || '0');
       const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
       if (rate > 0 && slots > 0) {
         document.getElementById('inp-slot-money').value = formatMoney(Math.round(slots * rate)) + ' đ';
@@ -1735,8 +1844,15 @@
     }
 
     function onSlipSlotsInput() {
+      const inpRate = document.getElementById('inp-slot-rate');
+      if (inpRate && inpRate.readOnly) {
+        // Giáo viên có nhiều mức giá theo ca (Cô Ngọc sáng 120k, chiều/tối 100k)
+        // Không tự ý nhân lại theo đơn giá trung bình cũ
+        calcSlipLive();
+        return;
+      }
       const slots = parseFloat(String(document.getElementById('inp-slots').value || '0').replace(',', '.')) || 0;
-      const rate = parseMoney(document.getElementById('inp-slot-rate')?.value || '0');
+      const rate = parseMoney(inpRate?.value || '0');
       if (rate > 0) {
         document.getElementById('inp-slot-money').value = formatMoney(Math.round(slots * rate)) + ' đ';
       }

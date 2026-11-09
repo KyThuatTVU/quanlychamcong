@@ -238,7 +238,6 @@ class Employee {
             // Lấy tất cả, không lọc status
         } elseif ($month > 0 && $year > 0) {
             // LỌC THÔNG MINH THEO KỲ:
-            // Lấy nhân viên ACTIVE HOẶC nhân viên đã nghỉ nhưng có dữ liệu chấm công / bảng lương trong tháng đó!
             $startDate = sprintf('%04d-%02d-01', $year, $month);
             $daysInM = (int)date('t', strtotime($startDate));
             $endDate = sprintf('%04d-%02d-%02d', $year, $month, $daysInM);
@@ -246,27 +245,33 @@ class Employee {
 
             $sql .= " AND (
                 (
-                    (e.status = 'ACTIVE' OR (e.status = 'RESIGNED' AND e.resigned_date IS NOT NULL AND e.resigned_date >= :p_start1))
+                    e.status = 'ACTIVE'
                     AND (e.created_at IS NULL OR e.created_at <= :p_end_time)
                     AND (e.start_date IS NULL OR e.start_date <= :p_end1)
+                    AND (e.resigned_date IS NULL OR e.resigned_date >= :p_start1)
                 )
-                OR EXISTS (
-                    SELECT 1 FROM monthly_payroll p 
-                    WHERE p.employee_id = e.id AND p.month = :p_month AND p.year = :p_year
+                OR (
+                    e.status = 'RESIGNED'
+                    AND e.resigned_date IS NOT NULL
+                    AND e.resigned_date >= :p_start2
+                    AND (e.start_date IS NULL OR e.start_date <= :p_end2)
                 )
                 OR EXISTS (
                     SELECT 1 FROM daily_attendance a 
                     WHERE a.employee_id = e.id 
-                      AND a.work_date BETWEEN :p_start2 AND :p_end2
+                      AND a.work_date BETWEEN :p_start3 AND :p_end3
                       AND (a.work_symbol NOT IN ('-', '', '0') OR a.total_slots > 0 OR a.time_in IS NOT NULL)
                 )
-            )";
-            $params[':p_month'] = $month;
-            $params[':p_year'] = $year;
+            )
+            AND NOT (e.status = 'RESIGNED' AND e.resigned_date IS NOT NULL AND e.resigned_date < :p_start_hard)";
+
             $params[':p_start1'] = $startDate;
             $params[':p_start2'] = $startDate;
+            $params[':p_start3'] = $startDate;
+            $params[':p_start_hard'] = $startDate;
             $params[':p_end1'] = $endDate;
             $params[':p_end2'] = $endDate;
+            $params[':p_end3'] = $endDate;
             $params[':p_end_time'] = $endDateTime;
         } elseif (!empty($status)) {
             $sql .= " AND e.status = :status";

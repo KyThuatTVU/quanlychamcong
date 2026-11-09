@@ -289,8 +289,12 @@ function renderPayrollTable() {
           </td>
           <td><strong style="color: var(--color-accent);">${parseFloat(item.total_slots || 0).toFixed(2).replace(/\.?0+$/, '')} ca</strong></td>
           <td>
-            <div><strong style="color: #1F2937;">${utils.formatCurrency(item.hourly_rate || item.emp_hourly_rate || 120000)}/ca</strong></div>
-            ${(parseFloat(item.probation_hourly_rate || 0) > 0 || (parseFloat(item.official_hourly_rate || 0) > 0 && parseFloat(item.probation_hourly_rate || 0) !== parseFloat(item.official_hourly_rate || 0))) ? `
+            ${(item.employee_code === 'GV010' || (item.full_name && item.full_name.includes('Ngọc'))) ? `
+              <div><strong style="color: #1D4ED8; font-size: 11.5px; background: #EFF6FF; padding: 2px 6px; border-radius: 4px; border: 1px solid #BFDBFE;">Sáng 120k | Tối 100k</strong></div>
+            ` : `
+              <div><strong style="color: #1F2937;">${utils.formatCurrency(item.hourly_rate || item.emp_hourly_rate || 120000)}/ca</strong></div>
+            `}
+            ${((item.employee_code !== 'GV010' && !(item.full_name && item.full_name.includes('Ngọc'))) && (parseFloat(item.probation_hourly_rate || 0) > 0 || (parseFloat(item.official_hourly_rate || 0) > 0 && parseFloat(item.probation_hourly_rate || 0) !== parseFloat(item.official_hourly_rate || 0)))) ? `
               <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
                 ${parseFloat(item.probation_hourly_rate || 0) > 0 ? `
                   <span class="badge" style="background: #FEF3C7; color: #92400E; font-size: 10px; padding: 1px 5px; border-radius: 4px; border: 1px solid #FCD34D; width: fit-content; font-weight: 600;">

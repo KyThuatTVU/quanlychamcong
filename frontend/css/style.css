@@ -983,6 +983,55 @@ body.sidebar-collapsed .app-main {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
+/* NÚT BẤM TÍCH CHỌN CA LÀM VIỆC (SÁNG / CHIỀU / TỐI) */
+.shift-pills-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+.shift-check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1.5px solid #CBD5E1;
+  background: #FFFFFF;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.shift-check-pill input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+.shift-check-pill:hover {
+  border-color: #94A3B8;
+  background: #F8FAFC;
+}
+.shift-check-pill.checked-morning {
+  border-color: #F59E0B;
+  background: #FEF3C7;
+  color: #92400E;
+}
+.shift-check-pill.checked-afternoon {
+  border-color: #3B82F6;
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+.shift-check-pill.checked-evening {
+  border-color: #8B5CF6;
+  background: #EDE9FE;
+  color: #5B21B6;
+}
+
 .cell-input-number {
   width: 65px;
   padding: 4px 6px;

@@ -605,11 +605,32 @@ window.onFixedStatusChange = function(empId) {
   saveSingleDailyFixed(empId);
 };
 
+// Kiểm tra nhân viên có phải là Cô Ngọc (GV010 / Nguyễn Huỳnh Mỹ Ngọc) không
+function isCoNgoc(emp) {
+  if (!emp) return false;
+  const id = Number(emp.id || 0);
+  const code = (emp.employee_code || '').toUpperCase().trim();
+  const name = (emp.full_name || '').toLowerCase().trim();
+
+  // Loại trừ các cô có tên lót "Ngọc" như Cô Thi (Võ Thị Ngọc Thi), Cô Trâm (Nguyễn Thị Ngọc Trâm)...
+  if (name.includes('thi') || name.includes('trâm')) return false;
+
+  if (id === 11 || code === 'GV010') return true;
+  if (name.includes('mỹ ngọc') || name.includes('cô ngọc') || name.endsWith('ngọc')) return true;
+  return false;
+}
+
 // Render bảng Lương Theo Giờ (Ảnh 2)
 function renderDailyHourlyTable(employees) {
   const tbody = document.getElementById('daily-tbody-hourly');
+  const hasCoNgoc = employees.some(emp => isCoNgoc(emp));
+  const thShift = document.getElementById('th-hourly-shift');
+  if (thShift) {
+    thShift.style.display = hasCoNgoc ? '' : 'none';
+  }
+
   if (employees.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="19" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Không có giáo viên lương giờ nào.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${hasCoNgoc ? 19 : 18}" style="text-align: center; padding: 30px; color: var(--color-text-secondary);">Không có giáo viên lương giờ nào.</td></tr>`;
     return;
   }
 
@@ -639,11 +660,13 @@ function renderDailyHourlyTable(employees) {
     const rowClass = isEntered ? '' : 'row-unentered'; // Hàng chưa nhập tô đỏ y hệt ảnh 2
     const confirmStatus = att.confirmation_status || (isEntered ? 'Đã xác nhận' : 'Chưa nhập');
 
+    const isNgoc = isCoNgoc(emp);
     const workSym = (att.work_symbol || '').toUpperCase();
     const notesText = (att.notes || '').toUpperCase();
-    const hasMorning = (smins > 0) || (sin && sout) || workSym.includes('S') || notesText.includes('SÁNG') || notesText.includes('1S');
-    const hasAfternoon = (cmins > 0) || (cin && cout) || workSym.includes('C') || notesText.includes('CHIỀU') || notesText.includes('1C');
-    const hasEvening = (tmins > 0) || (tin && tout) || workSym.includes('T') || notesText.includes('TỐI') || notesText.includes('1T');
+    // DẤU TÍCH CHỌN CA CHỈ DÀNH CHO CÔ NGỌC (khi có ký hiệu ca hoặc ghi chú ca, không tự động tích theo giờ)
+    const hasMorning = isNgoc && (workSym.includes('S') || notesText.includes('SÁNG') || notesText.includes('1S'));
+    const hasAfternoon = isNgoc && (workSym.includes('C') || notesText.includes('CHIỀU') || notesText.includes('1C'));
+    const hasEvening = isNgoc && (workSym.includes('T') || notesText.includes('TỐI') || notesText.includes('1T'));
 
     html += `
       <tr class="${rowClass}" id="hourly-row-${emp.id}">
@@ -653,23 +676,29 @@ function renderDailyHourlyTable(employees) {
         <td class="text-left" style="font-size: 12px;">${emp.position || '-'}</td>
         <td style="font-size: 12px; font-weight: 500;">${emp.time_frame || 'Linh động (1 ca)'}</td>
 
-        <!-- 👉 BẤM TÍCH CHỌN CA (BẢO MẬT, KHÔNG HIỆN SỐ TIỀN) -->
+        ${hasCoNgoc ? `
+        <!-- 👉 BẤM TÍCH CHỌN CA (CHỈ DÀNH CHO CÔ NGỌC VÌ LÀM THEO CA LỘN XỘN) -->
         <td style="text-align: center; vertical-align: middle;">
-          <div class="shift-pills-container">
-            <label class="shift-check-pill ${hasMorning ? 'checked-morning' : ''}" id="lbl-s-${emp.id}" title="Ca sáng">
-              <input type="checkbox" id="chk-s-${emp.id}" ${hasMorning ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
-              <span>☀️ Sáng</span>
-            </label>
-            <label class="shift-check-pill ${hasAfternoon ? 'checked-afternoon' : ''}" id="lbl-c-${emp.id}" title="Ca chiều">
-              <input type="checkbox" id="chk-c-${emp.id}" ${hasAfternoon ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
-              <span>🌤️ Chiều</span>
-            </label>
-            <label class="shift-check-pill ${hasEvening ? 'checked-evening' : ''}" id="lbl-t-${emp.id}" title="Ca tối">
-              <input type="checkbox" id="chk-t-${emp.id}" ${hasEvening ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
-              <span>🌙 Tối</span>
-            </label>
-          </div>
+          ${isNgoc ? `
+            <div class="shift-pills-container">
+              <label class="shift-check-pill ${hasMorning ? 'checked-morning' : ''}" id="lbl-s-${emp.id}" title="Ca sáng">
+                <input type="checkbox" id="chk-s-${emp.id}" ${hasMorning ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
+                <span>☀️ Sáng</span>
+              </label>
+              <label class="shift-check-pill ${hasAfternoon ? 'checked-afternoon' : ''}" id="lbl-c-${emp.id}" title="Ca chiều">
+                <input type="checkbox" id="chk-c-${emp.id}" ${hasAfternoon ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
+                <span>🌤️ Chiều</span>
+              </label>
+              <label class="shift-check-pill ${hasEvening ? 'checked-evening' : ''}" id="lbl-t-${emp.id}" title="Ca tối">
+                <input type="checkbox" id="chk-t-${emp.id}" ${hasEvening ? 'checked' : ''} onchange="onShiftCheckboxChange(${emp.id})">
+                <span>🌙 Tối</span>
+              </label>
+            </div>
+          ` : `
+            <span style="color: var(--color-text-muted); font-size: 13px;">—</span>
+          `}
         </td>
+        ` : ''}
 
         <!-- CA SÁNG -->
         <td><input type="text" class="cell-input-time" id="h-sin-${emp.id}" value="${sin}" placeholder="07:30" maxlength="5" onblur="onTimeBlur(this, ${emp.id}, 'hourly')" onchange="onHourlyInputChange(${emp.id})"></td>
@@ -774,16 +803,7 @@ window.onHourlyInputChange = function(empId) {
   document.getElementById(`txt-cmins-${empId}`).textContent = cmins > 0 ? cmins : '-';
   document.getElementById(`txt-tmins-${empId}`).textContent = tmins > 0 ? tmins : '-';
 
-  // Đồng bộ trạng thái checkbox theo giờ thực tế nếu người dùng gõ tay giờ
-  const chkS = document.getElementById(`chk-s-${empId}`);
-  const chkC = document.getElementById(`chk-c-${empId}`);
-  const chkT = document.getElementById(`chk-t-${empId}`);
-  const lblS = document.getElementById(`lbl-s-${empId}`);
-  const lblC = document.getElementById(`lbl-c-${empId}`);
-  const lblT = document.getElementById(`lbl-t-${empId}`);
-  if (chkS && smins > 0 && !chkS.checked) { chkS.checked = true; lblS?.classList.add('checked-morning'); }
-  if (chkC && cmins > 0 && !chkC.checked) { chkC.checked = true; lblC?.classList.add('checked-afternoon'); }
-  if (chkT && tmins > 0 && !chkT.checked) { chkT.checked = true; lblT?.classList.add('checked-evening'); }
+  // KHÔNG tự động tích checkbox khi nhập giờ ra vô (dấu tích chỉ dành riêng cho Cô Ngọc khi bấm tích thủ công)
 
   const totMins = smins + cmins + tmins;
   document.getElementById(`txt-totmins-${empId}`).textContent = totMins > 0 ? totMins : '-';
@@ -1158,8 +1178,10 @@ function renderMatrixTable(data) {
         }
       } else {
         if (att) {
-          // CHỈ TÍNH THEO SỐ CA THỰC TẾ ĐƯỢC XÁC NHẬN (actual_slots, hỗ trợ số thập phân như 0.67 hoặc 0,67)
-          const rawSlots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') ? parseFloat(att.actual_slots) : 0;
+          // Ưu tiên số ca thực tế (actual_slots), nếu chưa có thì lấy theo total_slots hoặc phút / 90
+          const rawSlots = (att.actual_slots !== undefined && att.actual_slots !== null && att.actual_slots !== '') 
+            ? parseFloat(att.actual_slots) 
+            : (parseFloat(att.total_slots || 0) || (att.total_minutes ? Math.round(att.total_minutes / 90 * 100) / 100 : 0));
           const slots = Math.round(rawSlots * 100) / 100;
           const slotsFormatted = slots > 0 ? slots.toFixed(2).replace(/\.?0+$/, '') : '0';
           const hasBt = parseInt(att.has_boarding || 0) === 1;

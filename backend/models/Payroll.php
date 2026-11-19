@@ -415,7 +415,17 @@ class Payroll {
                 }
             }
 
-            $slots = ($rawAct !== null) ? round($rawAct, 2) : 0;
+            // Với nhân viên lương giờ khác (hoặc khi không có phân chia Sáng/Chiều/Tối):
+            // Ưu tiên số ca thực tế nhập tay -> số ca tính từ phút làm việc (total_slots hoặc total_minutes / 90)
+            if ($rawAct !== null) {
+                $slots = round($rawAct, 2);
+            } elseif (isset($a['total_slots']) && $a['total_slots'] !== null && (float)$a['total_slots'] > 0) {
+                $slots = (float)$a['total_slots'];
+            } elseif (!empty($a['total_minutes'])) {
+                $slots = round(((int)$a['total_minutes']) / 90.0, 2);
+            } else {
+                $slots = 0.0;
+            }
             $totalSlots += $slots;
             $eveningSlots += $slots;
         }
